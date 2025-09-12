@@ -48,14 +48,14 @@ export async function GET(request: Request) {
       status: 'active'
     })) || []
 
-    const response = Response.json({ stories })
+    const apiResponse = Response.json({ stories })
     
     // Add cache busting headers
-    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-    response.headers.set('Pragma', 'no-cache')
-    response.headers.set('Expires', '0')
+    apiResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+    apiResponse.headers.set('Pragma', 'no-cache')
+    apiResponse.headers.set('Expires', '0')
     
-    return response
+    return apiResponse
   } catch (error) {
     console.error("[v0] Stories API error:", error)
     return Response.json({ error: "Server error" }, { status: 500 })
