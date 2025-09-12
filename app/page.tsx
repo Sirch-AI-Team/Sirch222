@@ -24,6 +24,7 @@ export default function HackerNewsClient() {
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1)
   const [highlightedDomainIndex, setHighlightedDomainIndex] = useState(-1)
   const [suggestionCursorY, setSuggestionCursorY] = useState(0)
+  const [modalCursorY, setModalCursorY] = useState(0)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -119,14 +120,27 @@ export default function HackerNewsClient() {
   // Mouse tracking for cursor line
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (e.clientX > 400) { // Only track when mouse is in content area
+      if (showCommandModal) {
+        // Track cursor in modal, but limit to suggestions area
+        const modalElement = document.querySelector('.w-\\[640px\\].h-\\[480px\\]') as HTMLElement
+        if (modalElement) {
+          const modalRect = modalElement.getBoundingClientRect()
+          const relativeY = e.clientY - modalRect.top
+          const searchInputBottom = 150 // Bottom of search input area
+          if (relativeY > searchInputBottom) {
+            setModalCursorY(relativeY)
+          } else {
+            setModalCursorY(searchInputBottom + 10) // Default position just below search
+          }
+        }
+      } else if (e.clientX > 400) { // Only track when mouse is in content area
         setCursorY(e.clientY)
       }
     }
 
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+  }, [showCommandModal])
 
   if (loading) {
     return (
@@ -146,11 +160,11 @@ export default function HackerNewsClient() {
           <div className="flex items-start" style={{ marginLeft: "calc((100vw - 640px) / 3)" }}>
             {/* PopSearch modal */}
             <div className="relative bg-white rounded shadow-xl border border-gray-200 w-[640px] h-[480px] max-w-[90vw] overflow-hidden flex flex-col">
-              {highlightedSuggestionIndex >= 0 && (
+              {showCommandModal && (
                 <div
                   className="absolute w-4 h-px bg-black z-10"
                   style={{
-                    top: `${suggestionCursorY}px`,
+                    top: `${modalCursorY}px`,
                     left: "0px",
                   }}
                 />
