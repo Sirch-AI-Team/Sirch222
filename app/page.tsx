@@ -368,7 +368,7 @@ export default function HackerNewsClient() {
       <div className="fixed w-4 h-px bg-black" style={{ top: `${cursorY}px`, left: "400px" }} />
 
       {/* MainBox */}
-      <div className="fixed top-6 w-80 h-80 bg-white border border-gray-100 shadow-sm p-4" style={{ left: "24px" }}>
+      <div className="fixed top-6 w-80 h-96 bg-white border border-gray-100 shadow-sm p-4" style={{ left: "24px" }}>
         <div className="text-sm text-gray-500 leading-relaxed overflow-y-auto h-full break-words">
           {getDisplayText()}
         </div>
