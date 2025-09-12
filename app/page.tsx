@@ -128,6 +128,29 @@ export default function HackerNewsClient() {
         </div>
       </div>
 
+      {/* Bottom left links */}
+      <div className="fixed bottom-6 left-6 flex gap-3">
+        <button
+          onClick={() => window.location.reload()}
+          className="text-xs text-black hover:text-gray-600 transition-colors"
+        >
+          Refresh Stories
+        </button>
+        
+        <button
+          className="text-xs text-black hover:text-gray-600 transition-colors"
+        >
+          Sirch
+        </button>
+        
+        <a 
+          href="mailto:josh@sirch.org" 
+          className="text-xs text-black hover:text-gray-600 transition-colors"
+        >
+          Contact
+        </a>
+      </div>
+
       {/* Main content */}
       <main className="py-6" style={{ paddingLeft: "432px" }}>
         {stories.length === 0 ? (
