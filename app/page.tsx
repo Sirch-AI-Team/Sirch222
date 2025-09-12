@@ -19,6 +19,8 @@ export default function HackerNewsClient() {
   const [loading, setLoading] = useState(true)
   const [alignedStoryIndex, setAlignedStoryIndex] = useState<number | null>(null)
   const [cursorY, setCursorY] = useState(0)
+  const [showCommandModal, setShowCommandModal] = useState(false)
+  const [commandSearchQuery, setCommandSearchQuery] = useState("")
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -110,6 +112,78 @@ export default function HackerNewsClient() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* PopSearch Modal */}
+      {showCommandModal && (
+        <div className="fixed inset-0 z-50 flex items-center">
+          <div className="absolute inset-0 backdrop-blur-sm" onClick={() => setShowCommandModal(false)} />
+          
+          <div className="flex items-start" style={{ marginLeft: "calc((100vw - 640px) / 3)" }}>
+            <div className="relative bg-white rounded shadow-xl border border-gray-200 w-[640px] h-[480px] max-w-[90vw] overflow-hidden flex flex-col">
+              <div className="p-6 flex-1 flex flex-col">
+                {/* Search input */}
+                <div className="mb-6 relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Type a command or search..."
+                    value={commandSearchQuery}
+                    onChange={(e) => setCommandSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 text-sm bg-transparent border border-gray-200 rounded-lg focus:outline-none focus:border-black transition-colors placeholder-gray-400"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && commandSearchQuery.trim()) {
+                        // Handle search
+                        console.log("Search:", commandSearchQuery)
+                        setShowCommandModal(false)
+                        setCommandSearchQuery("")
+                      }
+                      if (e.key === "Escape") {
+                        setShowCommandModal(false)
+                        setCommandSearchQuery("")
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Suggestions area */}
+                <div className="flex-1">
+                  <div className="text-sm text-gray-500 mb-4">
+                    Popular searches:
+                  </div>
+                  {['AI developments', 'React best practices', 'Startup funding', 'Open source projects'].map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setCommandSearchQuery(suggestion)
+                        console.log("Search:", suggestion)
+                        setShowCommandModal(false)
+                        setCommandSearchQuery("")
+                      }}
+                      className="w-full flex items-center px-4 py-3 text-sm text-left hover:text-orange-500 rounded-lg transition-colors border-b border-gray-50 last:border-0"
+                    >
+                      <span className="text-gray-400 mr-3 w-4 text-right flex-shrink-0">{index + 1}</span>
+                      <span>{suggestion}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Footer */}
+                <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
+                  <div className="text-xs text-gray-400">PopSearch</div>
+                  <div className="text-xs text-gray-400">
+                    <kbd className="px-2 py-1 bg-gray-100 rounded text-gray-600">↵</kbd> to search •{" "}
+                    <kbd className="px-2 py-1 bg-gray-100 rounded text-gray-600">esc</kbd> to close
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Vertical line separator */}
       <div className="fixed left-0 w-px h-full bg-black" style={{ left: "400px" }} />
       
@@ -138,6 +212,7 @@ export default function HackerNewsClient() {
         </button>
         
         <button
+          onClick={() => setShowCommandModal(true)}
           className="text-xs text-black hover:text-gray-600 transition-colors"
         >
           Sirch
