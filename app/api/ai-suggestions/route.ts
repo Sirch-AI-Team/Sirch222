@@ -83,8 +83,8 @@ export async function POST(request: Request) {
     // Parse AI response into suggestions array
     const suggestions = aiResponse
       .split('\n')
-      .map(s => s.replace(/^\d+\.\s*/, '').trim()) // Remove numbering
-      .filter(s => s.length > 0)
+      .map((s: string) => s.replace(/^\d+\.\s*/, '').trim()) // Remove numbering
+      .filter((s: string) => s.length > 0)
       .slice(0, 8) // Limit to 8 suggestions
     
     console.log("[AI] Generated suggestions:", suggestions)
