@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
     
     // Generate AI answer about the search query
-    const prompt = `Provide a brief, informative answer about "${query}". The answer should be 2-3 sentences, completely self-contained without pronouns (avoid "it", "this", "they", etc.), and understandable without seeing the original query. Focus on explaining what ${query} is, why ${query} matters, or what someone would find when researching ${query}.`
+    const prompt = `Provide specific, actionable insights about "${query}". Give concrete details, recommendations, or key facts that someone researching "${query}" would find valuable. Avoid generic definitions or circular explanations. The answer should be 2-3 sentences, completely self-contained without pronouns (avoid "it", "this", "they", etc.), and focus on practical information, current trends, or specific examples rather than just describing what the topic is.`
     
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
