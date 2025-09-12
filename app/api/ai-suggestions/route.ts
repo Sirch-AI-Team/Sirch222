@@ -6,9 +6,9 @@ export async function POST(request: Request) {
     
     console.log("[AI] Generating suggestions for:", query)
     
-    const openaiKey = process.env.OPENAI_API_KEY
+    const inceptionKey = 'sk_05911f8f9595f2e2c76c271b83052c92'
     
-    if (!openaiKey) {
+    if (!inceptionKey) {
       // Fallback to static suggestions if no OpenAI key
       const fallbackSuggestions = [
         "AI developments 2024",
@@ -29,14 +29,14 @@ export async function POST(request: Request) {
       ? `Based on the search query "${query}", generate 8 relevant, specific search suggestions for finding articles, tutorials, or discussions. Make each suggestion 2-5 words, focused on actionable topics someone might want to research. Return only the suggestions, one per line.`
       : `Generate 8 popular tech and startup search suggestions that would be interesting to research. Make each suggestion 2-5 words, focused on current trends and actionable topics. Return only the suggestions, one per line.`
     
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const inceptionResponse = await fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiKey}`,
+        'Authorization': `Bearer ${inceptionKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'mercury',
         messages: [
           {
             role: 'user',
@@ -48,8 +48,8 @@ export async function POST(request: Request) {
       })
     })
     
-    if (!openaiResponse.ok) {
-      console.error("[AI] OpenAI API error:", openaiResponse.status)
+    if (!inceptionResponse.ok) {
+      console.error("[AI] Inception Labs API error:", inceptionResponse.status)
       // Fallback to contextual static suggestions
       const contextualSuggestions = query.trim() 
         ? [
@@ -72,11 +72,11 @@ export async function POST(request: Request) {
       return Response.json({ suggestions: contextualSuggestions })
     }
     
-    const aiData = await openaiResponse.json()
+    const aiData = await inceptionResponse.json()
     const aiResponse = aiData.choices?.[0]?.message?.content?.trim()
     
     if (!aiResponse) {
-      console.error("[AI] No response from OpenAI")
+      console.error("[AI] No response from Inception Labs")
       return Response.json({ suggestions: ["AI developments", "React tips", "Startup advice", "Open source"] })
     }
     
