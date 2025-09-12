@@ -8,6 +8,8 @@ export async function POST(request: Request) {
     
     const openaiKey = process.env.OPENAI_API_KEY
     
+    console.log("[PopBox] OpenAI key present:", !!openaiKey)
+    
     if (!openaiKey) {
       // Fallback to informational text if no OpenAI key
       return Response.json({ 
