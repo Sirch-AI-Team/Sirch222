@@ -29,6 +29,7 @@ export default function HackerNewsClient() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [popBoxAnswer, setPopBoxAnswer] = useState("")
   const [loadingPopBoxAnswer, setLoadingPopBoxAnswer] = useState(false)
+  const [keyboardMode, setKeyboardMode] = useState(false)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -177,6 +178,9 @@ export default function HackerNewsClient() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (showCommandModal) {
+        // Switch to cursor mode when mouse moves
+        setKeyboardMode(false)
+        
         // Track cursor in modal, but limit to suggestions area
         const modalElement = document.querySelector('.w-\\[640px\\].h-\\[480px\\]') as HTMLElement
         if (modalElement) {
@@ -198,9 +202,44 @@ export default function HackerNewsClient() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [showCommandModal])
 
+  // Keyboard navigation for suggestions
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!showCommandModal) return
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        setKeyboardMode(true)
+        
+        if (e.key === 'ArrowDown') {
+          setHighlightedSuggestionIndex(prev => {
+            if (prev === -1) return 0 // First press starts at first item
+            const nextIndex = prev < suggestions.length - 1 ? prev + 1 : 0
+            return nextIndex
+          })
+        } else if (e.key === 'ArrowUp') {
+          setHighlightedSuggestionIndex(prev => {
+            if (prev === -1) return suggestions.length - 1 // First press starts at last item
+            const nextIndex = prev > 0 ? prev - 1 : suggestions.length - 1
+            return nextIndex
+          })
+        }
+      }
+    }
+
+    if (showCommandModal) {
+      window.addEventListener('keydown', handleKeyDown)
+      return () => window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showCommandModal, suggestions.length])
+
   // Fetch AI suggestions when modal opens or search query changes
   useEffect(() => {
     if (showCommandModal) {
+      // Reset keyboard mode and highlighted index when modal opens
+      setKeyboardMode(false)
+      setHighlightedSuggestionIndex(-1)
+      
       const timeoutId = setTimeout(() => {
         fetchAISuggestions(commandSearchQuery)
       }, 300) // Debounce for 300ms
@@ -245,7 +284,7 @@ export default function HackerNewsClient() {
                   className="absolute w-4 h-px bg-black z-10"
                   style={{
                     top: `${modalCursorY}px`,
-                    left: "0px",
+                    right: "0px",
                   }}
                 />
               )}
@@ -325,7 +364,11 @@ export default function HackerNewsClient() {
                           setShowCommandModal(false)
                           setCommandSearchQuery("")
                         }}
-                        onMouseEnter={() => setHighlightedSuggestionIndex(index)}
+                        onMouseEnter={() => {
+                          if (!keyboardMode) {
+                            setHighlightedSuggestionIndex(index)
+                          }
+                        }}
                         className={`w-full flex items-center px-4 py-3 text-sm text-left hover:text-orange-500 rounded-lg transition-colors border-b border-gray-50 last:border-0 ${
                           highlightedSuggestionIndex === index ? "text-orange-500" : "text-black"
                         }`}
