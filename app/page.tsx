@@ -202,36 +202,6 @@ export default function HackerNewsClient() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [showCommandModal])
 
-  // Keyboard navigation for suggestions
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!showCommandModal) return
-
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault()
-        setKeyboardMode(true)
-        
-        if (e.key === 'ArrowDown') {
-          setHighlightedSuggestionIndex(prev => {
-            if (prev === -1) return 0 // First press starts at first item
-            const nextIndex = prev < suggestions.length - 1 ? prev + 1 : 0
-            return nextIndex
-          })
-        } else if (e.key === 'ArrowUp') {
-          setHighlightedSuggestionIndex(prev => {
-            if (prev === -1) return suggestions.length - 1 // First press starts at last item
-            const nextIndex = prev > 0 ? prev - 1 : suggestions.length - 1
-            return nextIndex
-          })
-        }
-      }
-    }
-
-    if (showCommandModal) {
-      window.addEventListener('keydown', handleKeyDown)
-      return () => window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [showCommandModal, suggestions.length])
 
   // Fetch AI suggestions when modal opens or search query changes
   useEffect(() => {
@@ -318,7 +288,7 @@ export default function HackerNewsClient() {
 
                 {/* Search input */}
                 <div className="mb-6 relative">
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                       <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
                     </svg>
@@ -328,18 +298,44 @@ export default function HackerNewsClient() {
                     placeholder="Type a command or search..."
                     value={commandSearchQuery}
                     onChange={(e) => setCommandSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 text-sm bg-transparent border border-gray-200 rounded-lg focus:outline-none focus:border-black transition-colors placeholder-gray-400"
+                    className="w-full pl-10 pr-4 py-3 text-sm bg-black text-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 transition-colors placeholder-gray-400"
                     autoFocus
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && commandSearchQuery.trim()) {
-                        // Handle search
-                        console.log("Search:", commandSearchQuery)
-                        setShowCommandModal(false)
-                        setCommandSearchQuery("")
+                      if (e.key === "Enter") {
+                        if (highlightedSuggestionIndex >= 0 && suggestions[highlightedSuggestionIndex]) {
+                          // Use highlighted suggestion
+                          setCommandSearchQuery(suggestions[highlightedSuggestionIndex])
+                          console.log("Search:", suggestions[highlightedSuggestionIndex])
+                          setShowCommandModal(false)
+                          setCommandSearchQuery("")
+                        } else if (commandSearchQuery.trim()) {
+                          // Use typed query
+                          console.log("Search:", commandSearchQuery)
+                          setShowCommandModal(false)
+                          setCommandSearchQuery("")
+                        }
                       }
                       if (e.key === "Escape") {
                         setShowCommandModal(false)
                         setCommandSearchQuery("")
+                      }
+                      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault()
+                        setKeyboardMode(true)
+                        
+                        if (e.key === 'ArrowDown') {
+                          setHighlightedSuggestionIndex(prev => {
+                            if (prev === -1) return 0 // First press starts at first item
+                            const nextIndex = prev < suggestions.length - 1 ? prev + 1 : 0
+                            return nextIndex
+                          })
+                        } else if (e.key === 'ArrowUp') {
+                          setHighlightedSuggestionIndex(prev => {
+                            if (prev === -1) return suggestions.length - 1 // First press starts at last item
+                            const nextIndex = prev > 0 ? prev - 1 : suggestions.length - 1
+                            return nextIndex
+                          })
+                        }
                       }
                     }}
                   />
@@ -347,12 +343,9 @@ export default function HackerNewsClient() {
 
                 {/* Suggestions area */}
                 <div className="flex-1">
-                  <div className="text-sm text-gray-500 mb-4">
-                    {loadingSuggestions ? "Generating suggestions..." : "Popular searches:"}
-                  </div>
                   {loadingSuggestions ? (
                     <div className="flex items-center justify-center py-8">
-                      <div className="text-gray-400 text-sm">Loading...</div>
+                      <div className="text-gray-400 text-sm">Generating suggestions...</div>
                     </div>
                   ) : (
                     suggestions.map((suggestion, index) => (
