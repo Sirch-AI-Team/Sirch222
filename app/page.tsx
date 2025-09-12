@@ -25,6 +25,8 @@ export default function HackerNewsClient() {
   const [highlightedDomainIndex, setHighlightedDomainIndex] = useState(-1)
   const [suggestionCursorY, setSuggestionCursorY] = useState(0)
   const [modalCursorY, setModalCursorY] = useState(0)
+  const [suggestions, setSuggestions] = useState<string[]>(['AI developments', 'React best practices', 'Startup funding', 'Open source projects'])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -76,11 +78,34 @@ export default function HackerNewsClient() {
     return domains
   }
 
+  const fetchAISuggestions = async (query: string = "") => {
+    setLoadingSuggestions(true)
+    try {
+      const response = await fetch("/api/ai-suggestions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.suggestions && data.suggestions.length > 0) {
+          setSuggestions(data.suggestions)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch AI suggestions:", error)
+    } finally {
+      setLoadingSuggestions(false)
+    }
+  }
+
   const getPopBoxText = () => {
     if (highlightedSuggestionIndex === -1) {
       return "Navigate through suggestions to see detailed information about each search query. Use arrow keys or hover to explore different options."
     }
-    const suggestions = ['AI developments', 'React best practices', 'Startup funding', 'Open source projects']
     const current = suggestions[highlightedSuggestionIndex]
     return `Search for "${current}" across multiple sources to find the latest articles, discussions, and insights on this topic.`
   }
@@ -141,6 +166,17 @@ export default function HackerNewsClient() {
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [showCommandModal])
+
+  // Fetch AI suggestions when modal opens or search query changes
+  useEffect(() => {
+    if (showCommandModal) {
+      const timeoutId = setTimeout(() => {
+        fetchAISuggestions(commandSearchQuery)
+      }, 300) // Debounce for 300ms
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [showCommandModal, commandSearchQuery])
 
   if (loading) {
     return (
@@ -229,26 +265,32 @@ export default function HackerNewsClient() {
                 {/* Suggestions area */}
                 <div className="flex-1">
                   <div className="text-sm text-gray-500 mb-4">
-                    Popular searches:
+                    {loadingSuggestions ? "Generating suggestions..." : "Popular searches:"}
                   </div>
-                  {['AI developments', 'React best practices', 'Startup funding', 'Open source projects'].map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setCommandSearchQuery(suggestion)
-                        console.log("Search:", suggestion)
-                        setShowCommandModal(false)
-                        setCommandSearchQuery("")
-                      }}
-                      onMouseEnter={() => setHighlightedSuggestionIndex(index)}
-                      className={`w-full flex items-center px-4 py-3 text-sm text-left hover:text-orange-500 rounded-lg transition-colors border-b border-gray-50 last:border-0 ${
-                        highlightedSuggestionIndex === index ? "text-orange-500" : "text-black"
-                      }`}
-                    >
-                      <span className="text-gray-400 mr-3 w-4 text-right flex-shrink-0">{index + 1}</span>
-                      <span className="truncate">{suggestion}</span>
-                    </button>
-                  ))}
+                  {loadingSuggestions ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-gray-400 text-sm">Loading...</div>
+                    </div>
+                  ) : (
+                    suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setCommandSearchQuery(suggestion)
+                          console.log("Search:", suggestion)
+                          setShowCommandModal(false)
+                          setCommandSearchQuery("")
+                        }}
+                        onMouseEnter={() => setHighlightedSuggestionIndex(index)}
+                        className={`w-full flex items-center px-4 py-3 text-sm text-left hover:text-orange-500 rounded-lg transition-colors border-b border-gray-50 last:border-0 ${
+                          highlightedSuggestionIndex === index ? "text-orange-500" : "text-black"
+                        }`}
+                      >
+                        <span className="text-gray-400 mr-3 w-4 text-right flex-shrink-0">{index + 1}</span>
+                        <span className="truncate">{suggestion}</span>
+                      </button>
+                    ))
+                  )}
                 </div>
 
                 {/* Footer */}
