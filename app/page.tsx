@@ -21,6 +21,9 @@ export default function HackerNewsClient() {
   const [cursorY, setCursorY] = useState(0)
   const [showCommandModal, setShowCommandModal] = useState(false)
   const [commandSearchQuery, setCommandSearchQuery] = useState("")
+  const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1)
+  const [highlightedDomainIndex, setHighlightedDomainIndex] = useState(-1)
+  const [suggestionCursorY, setSuggestionCursorY] = useState(0)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -56,6 +59,29 @@ export default function HackerNewsClient() {
     }
 
     return "Real-time HackerNews stories with AI-generated summaries. Updated every 10 minutes from the top 100 stories."
+  }
+
+  const getDynamicDomains = (query: string) => {
+    const domains = [
+      { name: "github", icon: "🐙" },
+      { name: "reddit", icon: "🤖" }, 
+      { name: "twitter", icon: "🐦" },
+      { name: "medium", icon: "📝" },
+      { name: "youtube", icon: "📺" },
+      { name: "stackoverflow", icon: "💬" },
+      { name: "techcrunch", icon: "📰" },
+      { name: "vercel", icon: "▲" }
+    ]
+    return domains
+  }
+
+  const getPopBoxText = () => {
+    if (highlightedSuggestionIndex === -1) {
+      return "Navigate through suggestions to see detailed information about each search query. Use arrow keys or hover to explore different options."
+    }
+    const suggestions = ['AI developments', 'React best practices', 'Startup funding', 'Open source projects']
+    const current = suggestions[highlightedSuggestionIndex]
+    return `Search for "${current}" across multiple sources to find the latest articles, discussions, and insights on this topic.`
   }
 
   useEffect(() => {
@@ -118,8 +144,45 @@ export default function HackerNewsClient() {
           <div className="absolute inset-0 backdrop-blur-sm" onClick={() => setShowCommandModal(false)} />
           
           <div className="flex items-start" style={{ marginLeft: "calc((100vw - 640px) / 3)" }}>
+            {/* PopSearch modal */}
             <div className="relative bg-white rounded shadow-xl border border-gray-200 w-[640px] h-[480px] max-w-[90vw] overflow-hidden flex flex-col">
+              {highlightedSuggestionIndex >= 0 && (
+                <div
+                  className="absolute w-4 h-px bg-black z-10"
+                  style={{
+                    top: `${suggestionCursorY}px`,
+                    left: "0px",
+                  }}
+                />
+              )}
               <div className="p-6 flex-1 flex flex-col">
+                {/* Domain buttons */}
+                <div className="mb-4">
+                  <div
+                    className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    {getDynamicDomains(commandSearchQuery).map((domain, index) => (
+                      <button
+                        key={domain.name}
+                        className={`flex items-center gap-1 px-3 py-1 text-xs rounded-full border transition-colors flex-shrink-0 ${
+                          highlightedDomainIndex === index
+                            ? "bg-orange-50 border-orange-200 text-orange-600"
+                            : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                        }`}
+                        onMouseEnter={() => setHighlightedDomainIndex(index)}
+                        onClick={() => {
+                          setCommandSearchQuery(`site:${domain.name}.com `)
+                          setHighlightedDomainIndex(-1)
+                        }}
+                      >
+                        <span>{domain.icon}</span>
+                        <span>{domain.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Search input */}
                 <div className="mb-6 relative">
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -163,10 +226,13 @@ export default function HackerNewsClient() {
                         setShowCommandModal(false)
                         setCommandSearchQuery("")
                       }}
-                      className="w-full flex items-center px-4 py-3 text-sm text-left hover:text-orange-500 rounded-lg transition-colors border-b border-gray-50 last:border-0"
+                      onMouseEnter={() => setHighlightedSuggestionIndex(index)}
+                      className={`w-full flex items-center px-4 py-3 text-sm text-left hover:text-orange-500 rounded-lg transition-colors border-b border-gray-50 last:border-0 ${
+                        highlightedSuggestionIndex === index ? "text-orange-500" : "text-black"
+                      }`}
                     >
                       <span className="text-gray-400 mr-3 w-4 text-right flex-shrink-0">{index + 1}</span>
-                      <span>{suggestion}</span>
+                      <span className="truncate">{suggestion}</span>
                     </button>
                   ))}
                 </div>
@@ -179,6 +245,17 @@ export default function HackerNewsClient() {
                     <kbd className="px-2 py-1 bg-gray-100 rounded text-gray-600">esc</kbd> to close
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* PopBox - matches main page sidebar styling */}
+            <div className="relative bg-white border border-gray-100 shadow-sm w-80 h-80 p-4 flex flex-col ml-6">
+              <div className="text-sm text-gray-500 leading-tight overflow-hidden flex-1">
+                {getPopBoxText()}
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="text-xs text-gray-400">PopBox</div>
               </div>
             </div>
           </div>
