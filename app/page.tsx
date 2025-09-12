@@ -27,6 +27,8 @@ export default function HackerNewsClient() {
   const [modalCursorY, setModalCursorY] = useState(0)
   const [suggestions, setSuggestions] = useState<string[]>(['AI developments', 'React best practices', 'Startup funding', 'Open source projects'])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [popBoxAnswer, setPopBoxAnswer] = useState("")
+  const [loadingPopBoxAnswer, setLoadingPopBoxAnswer] = useState(false)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -102,12 +104,41 @@ export default function HackerNewsClient() {
     }
   }
 
+  const fetchPopBoxAnswer = async (query: string) => {
+    if (!query || query.trim() === "") {
+      setPopBoxAnswer("Navigate through suggestions to see detailed information about each search query. Use arrow keys or hover to explore different options.")
+      return
+    }
+
+    setLoadingPopBoxAnswer(true)
+    try {
+      const response = await fetch("/api/popbox-answer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.answer) {
+          setPopBoxAnswer(data.answer)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch PopBox answer:", error)
+      setPopBoxAnswer(`Search for "${query}" across multiple sources to find the latest articles, discussions, and insights on this topic.`)
+    } finally {
+      setLoadingPopBoxAnswer(false)
+    }
+  }
+
   const getPopBoxText = () => {
     if (highlightedSuggestionIndex === -1) {
       return "Navigate through suggestions to see detailed information about each search query. Use arrow keys or hover to explore different options."
     }
-    const current = suggestions[highlightedSuggestionIndex]
-    return `Search for "${current}" across multiple sources to find the latest articles, discussions, and insights on this topic.`
+    return loadingPopBoxAnswer ? "Generating answer..." : popBoxAnswer || "Loading information about this topic..."
   }
 
   useEffect(() => {
@@ -177,6 +208,19 @@ export default function HackerNewsClient() {
       return () => clearTimeout(timeoutId)
     }
   }, [showCommandModal, commandSearchQuery])
+
+  // Fetch PopBox answer when suggestion is highlighted
+  useEffect(() => {
+    if (showCommandModal && highlightedSuggestionIndex >= 0 && suggestions[highlightedSuggestionIndex]) {
+      const timeoutId = setTimeout(() => {
+        fetchPopBoxAnswer(suggestions[highlightedSuggestionIndex])
+      }, 200) // Debounce for 200ms
+
+      return () => clearTimeout(timeoutId)
+    } else if (highlightedSuggestionIndex === -1) {
+      setPopBoxAnswer("")
+    }
+  }, [highlightedSuggestionIndex, suggestions, showCommandModal])
 
   if (loading) {
     return (
