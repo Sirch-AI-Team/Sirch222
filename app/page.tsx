@@ -281,15 +281,10 @@ export default function HackerNewsClient() {
       {/* Cursor line */}
       <div className="fixed w-4 h-px bg-black" style={{ top: `${cursorY}px`, left: "400px" }} />
 
-      {/* Sidebar */}
+      {/* MainBox */}
       <div className="fixed top-6 w-80 h-80 bg-white border border-gray-100 shadow-sm p-4" style={{ left: "24px" }}>
-        <div className="text-sm text-gray-500 leading-tight overflow-hidden flex-1">
+        <div className="text-sm text-gray-500 leading-tight overflow-hidden h-full">
           {getDisplayText()}
-        </div>
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="text-xs text-gray-400">
-            Sirch • AI-powered HackerNews
-          </div>
         </div>
       </div>
 
