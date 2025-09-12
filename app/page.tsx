@@ -18,6 +18,7 @@ export default function HackerNewsClient() {
   const [stories, setStories] = useState<Story[]>([])
   const [loading, setLoading] = useState(true)
   const [alignedStoryIndex, setAlignedStoryIndex] = useState<number | null>(null)
+  const [cursorY, setCursorY] = useState(0)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -87,6 +88,18 @@ export default function HackerNewsClient() {
     return () => clearInterval(interval)
   }, [])
 
+  // Mouse tracking for cursor line
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (e.clientX > 400) { // Only track when mouse is in content area
+        setCursorY(e.clientY)
+      }
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -101,7 +114,7 @@ export default function HackerNewsClient() {
       <div className="fixed left-0 w-px h-full bg-black" style={{ left: "400px" }} />
       
       {/* Cursor line */}
-      <div className="fixed w-4 h-px bg-black" style={{ top: "50vh", left: "400px" }} />
+      <div className="fixed w-4 h-px bg-black" style={{ top: `${cursorY}px`, left: "400px" }} />
 
       {/* Sidebar */}
       <div className="fixed top-6 w-80 h-80 bg-white border border-gray-100 shadow-sm p-4" style={{ left: "24px" }}>
