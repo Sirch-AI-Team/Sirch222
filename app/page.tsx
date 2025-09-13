@@ -65,7 +65,9 @@ export default function HackerNewsClient() {
 
   const getDisplayText = () => {
     if (searchQuery && alignedSearchIndex !== null && searchResults[alignedSearchIndex]?.description) {
-      return searchResults[alignedSearchIndex].description
+      // Strip HTML tags from search result descriptions
+      const description = searchResults[alignedSearchIndex].description
+      return description.replace(/<[^>]*>/g, '')
     }
 
     if (searchQuery && searchResults.length > 0) {
