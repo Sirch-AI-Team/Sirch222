@@ -11,8 +11,12 @@ export async function GET(request: Request) {
 
     console.log("[Search] Brave Search API request for:", query)
     
-    // Use a generic API key for Brave Search - in production you'd want to use environment variables
-    const braveApiKey = "BSA8H7BJ_QOYEojvhXf7cUb1KhVaBjVYTvE"
+    const braveApiKey = process.env.BRAVE_API_KEY
+    
+    if (!braveApiKey) {
+      console.error("[Search] Brave API key not configured")
+      return Response.json({ error: "Search service not configured" }, { status: 503 })
+    }
     
     const braveResponse = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10`, {
       method: 'GET',
