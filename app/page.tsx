@@ -30,6 +30,9 @@ export default function HackerNewsClient() {
   const [popBoxAnswer, setPopBoxAnswer] = useState("")
   const [loadingPopBoxAnswer, setLoadingPopBoxAnswer] = useState(false)
   const [keyboardMode, setKeyboardMode] = useState(false)
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchLoading, setSearchLoading] = useState(false)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -60,6 +63,18 @@ export default function HackerNewsClient() {
   }
 
   const getDisplayText = () => {
+    if (searchQuery && searchResults.length > 0) {
+      return `Search results for "${searchQuery}": Found ${searchResults.length} results from across the web.`
+    }
+
+    if (searchQuery && searchLoading) {
+      return `Searching for "${searchQuery}"...`
+    }
+
+    if (searchQuery && !searchLoading && searchResults.length === 0) {
+      return `No results found for "${searchQuery}". Try a different search term.`
+    }
+
     if (alignedStoryIndex !== null && stories[alignedStoryIndex]?.summary) {
       return stories[alignedStoryIndex].summary
     }
@@ -132,6 +147,31 @@ export default function HackerNewsClient() {
       setPopBoxAnswer(`Search for "${query}" across multiple sources to find the latest articles, discussions, and insights on this topic.`)
     } finally {
       setLoadingPopBoxAnswer(false)
+    }
+  }
+
+  const performSearch = async (query: string) => {
+    if (!query || query.trim() === "") return
+
+    setSearchLoading(true)
+    setSearchQuery(query)
+    setSearchResults([])
+
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        setSearchResults(data.results || [])
+      } else {
+        console.error("Search API error:", response.status)
+        setSearchResults([])
+      }
+    } catch (error) {
+      console.error("Search error:", error)
+      setSearchResults([])
+    } finally {
+      setSearchLoading(false)
     }
   }
 
@@ -302,17 +342,14 @@ export default function HackerNewsClient() {
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        if (highlightedSuggestionIndex >= 0 && suggestions[highlightedSuggestionIndex]) {
-                          // Use highlighted suggestion
-                          setCommandSearchQuery(suggestions[highlightedSuggestionIndex])
-                          console.log("Search:", suggestions[highlightedSuggestionIndex])
+                        const queryToSearch = highlightedSuggestionIndex >= 0 && suggestions[highlightedSuggestionIndex] 
+                          ? suggestions[highlightedSuggestionIndex] 
+                          : commandSearchQuery.trim()
+                        
+                        if (queryToSearch) {
                           setShowCommandModal(false)
                           setCommandSearchQuery("")
-                        } else if (commandSearchQuery.trim()) {
-                          // Use typed query
-                          console.log("Search:", commandSearchQuery)
-                          setShowCommandModal(false)
-                          setCommandSearchQuery("")
+                          performSearch(queryToSearch)
                         }
                       }
                       if (e.key === "Escape") {
@@ -352,10 +389,9 @@ export default function HackerNewsClient() {
                       <button
                         key={index}
                         onClick={() => {
-                          setCommandSearchQuery(suggestion)
-                          console.log("Search:", suggestion)
                           setShowCommandModal(false)
                           setCommandSearchQuery("")
+                          performSearch(suggestion)
                         }}
                         onMouseEnter={() => {
                           if (!keyboardMode) {
@@ -436,12 +472,85 @@ export default function HackerNewsClient() {
 
       {/* Main content */}
       <main className="py-6" style={{ paddingLeft: "432px" }}>
-        {stories.length === 0 ? (
+        {searchQuery ? (
+          // Search Results
+          searchLoading ? (
+            <div className="text-center text-gray-400 mt-20">
+              <p className="text-sm">Searching...</p>
+              <p className="text-xs mt-2">Finding results for "{searchQuery}"</p>
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="text-center text-gray-400 mt-20">
+              <p className="text-sm">No results found</p>
+              <p className="text-xs mt-2">Try a different search term</p>
+              <button 
+                onClick={() => {
+                  setSearchQuery("")
+                  setSearchResults([])
+                }}
+                className="text-xs text-blue-500 hover:text-blue-600 mt-4"
+              >
+                Back to HackerNews
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-medium">Search Results for "{searchQuery}"</h2>
+                <button 
+                  onClick={() => {
+                    setSearchQuery("")
+                    setSearchResults([])
+                  }}
+                  className="text-xs text-blue-500 hover:text-blue-600"
+                >
+                  Back to HackerNews
+                </button>
+              </div>
+              {searchResults.map((result, index) => (
+                <div
+                  key={index}
+                  className="py-4 border-b border-gray-50 last:border-0"
+                >
+                  <div className="flex gap-3">
+                    <span className="text-sm w-6 flex-shrink-0 text-right text-gray-500">
+                      {index + 1}
+                    </span>
+
+                    <div className="flex-1 min-w-0">
+                      <h3 className="leading-snug text-black">
+                        <a
+                          href={result.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-blue-600"
+                        >
+                          {result.title}
+                        </a>
+                      </h3>
+
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                        {result.description}
+                      </p>
+
+                      <div className="text-xs text-gray-400 mt-1">
+                        {new URL(result.url).hostname}
+                        {result.age && ` • ${result.age}`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )
+        ) : stories.length === 0 ? (
+          // HackerNews Loading
           <div className="text-center text-gray-400 mt-20">
             <p className="text-sm">No stories available</p>
             <p className="text-xs mt-2">Fetching from HackerNews...</p>
           </div>
         ) : (
+          // HackerNews Stories
           stories.map((story, index) => (
             <div
               key={story.id}
