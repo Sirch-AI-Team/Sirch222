@@ -33,6 +33,7 @@ export default function HackerNewsClient() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [searchLoading, setSearchLoading] = useState(false)
+  const [alignedSearchIndex, setAlignedSearchIndex] = useState<number | null>(null)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -63,6 +64,10 @@ export default function HackerNewsClient() {
   }
 
   const getDisplayText = () => {
+    if (searchQuery && alignedSearchIndex !== null && searchResults[alignedSearchIndex]?.description) {
+      return searchResults[alignedSearchIndex].description
+    }
+
     if (searchQuery && searchResults.length > 0) {
       return `Search results for "${searchQuery}": Found ${searchResults.length} results from across the web.`
     }
@@ -448,12 +453,25 @@ export default function HackerNewsClient() {
 
       {/* Bottom left links */}
       <div className="fixed bottom-6 left-6 flex gap-3">
-        <button
-          onClick={() => window.location.reload()}
-          className="text-xs text-black hover:text-gray-600 transition-colors"
-        >
-          Refresh Stories
-        </button>
+        {searchQuery ? (
+          <button
+            onClick={() => {
+              setSearchQuery("")
+              setSearchResults([])
+              setAlignedSearchIndex(null)
+            }}
+            className="text-xs text-black hover:text-gray-600 transition-colors"
+          >
+            Back to HackerNews
+          </button>
+        ) : (
+          <button
+            onClick={() => window.location.reload()}
+            className="text-xs text-black hover:text-gray-600 transition-colors"
+          >
+            Refresh Stories
+          </button>
+        )}
         
         <button
           onClick={() => setShowCommandModal(true)}
@@ -483,65 +501,43 @@ export default function HackerNewsClient() {
             <div className="text-center text-gray-400 mt-20">
               <p className="text-sm">No results found</p>
               <p className="text-xs mt-2">Try a different search term</p>
-              <button 
-                onClick={() => {
-                  setSearchQuery("")
-                  setSearchResults([])
-                }}
-                className="text-xs text-blue-500 hover:text-blue-600 mt-4"
-              >
-                Back to HackerNews
-              </button>
             </div>
           ) : (
-            <>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-medium">Search Results for "{searchQuery}"</h2>
-                <button 
-                  onClick={() => {
-                    setSearchQuery("")
-                    setSearchResults([])
-                  }}
-                  className="text-xs text-blue-500 hover:text-blue-600"
-                >
-                  Back to HackerNews
-                </button>
-              </div>
-              {searchResults.map((result, index) => (
-                <div
-                  key={index}
-                  className="py-4 border-b border-gray-50 last:border-0"
-                >
-                  <div className="flex gap-3">
-                    <span className="text-sm w-6 flex-shrink-0 text-right text-gray-500">
-                      {index + 1}
-                    </span>
+            searchResults.map((result, index) => (
+              <div
+                key={index}
+                className="py-3 border-b border-gray-50 last:border-0"
+                onMouseEnter={() => setAlignedSearchIndex(index)}
+              >
+                <div className="flex gap-3">
+                  <span
+                    className={`text-sm w-6 flex-shrink-0 text-right ${
+                      alignedSearchIndex === index ? "text-orange-500" : "text-gray-500"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
 
-                    <div className="flex-1 min-w-0">
-                      <h3 className="leading-snug text-black">
-                        <a
-                          href={result.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:text-blue-600"
-                        >
-                          {result.title}
-                        </a>
-                      </h3>
+                  <div className="flex-1 min-w-0">
+                    <h2 className={`leading-snug ${alignedSearchIndex === index ? "text-orange-500" : "text-black"}`}>
+                      <a
+                        href={result.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={alignedSearchIndex === index ? "hover:text-orange-600" : "hover:text-gray-600"}
+                      >
+                        {result.title}
+                      </a>
+                    </h2>
 
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                        {result.description}
-                      </p>
-
-                      <div className="text-xs text-gray-400 mt-1">
-                        {new URL(result.url).hostname}
-                        {result.age && ` • ${result.age}`}
-                      </div>
+                    <div className={`text-xs mt-1 ${alignedSearchIndex === index ? "text-orange-400" : "text-gray-400"}`}>
+                      {new URL(result.url).hostname}
+                      {result.age && ` • ${result.age}`}
                     </div>
                   </div>
                 </div>
-              ))}
-            </>
+              </div>
+            ))
           )
         ) : stories.length === 0 ? (
           // HackerNews Loading
