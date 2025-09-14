@@ -108,75 +108,20 @@ export default function HackerNewsClient() {
     return "Real-time HackerNews stories with AI-generated summaries. Updated every 10 minutes from the top 100 stories."
   }
 
-  const [domainLogos, setDomainLogos] = useState<{[key: string]: string}>({})
+  const [logoResults, setLogoResults] = useState<{name: string, logo_url: string, domain: string}[]>([])
+  const [logoSearchQuery, setLogoSearchQuery] = useState("")
+  const [logoLoading, setLogoLoading] = useState(false)
 
   const getDynamicDomains = (query: string) => {
-    // If query is short or empty, show default domains
-    if (!query || query.length < 2) {
-      return [
-        { name: "github", icon: domainLogos["github"] || "🐙" },
-        { name: "reddit", icon: domainLogos["reddit"] || "🤖" },
-        { name: "twitter", icon: domainLogos["twitter"] || "🐦" },
-        { name: "medium", icon: domainLogos["medium"] || "📝" },
-        { name: "youtube", icon: domainLogos["youtube"] || "📺" },
-        { name: "stackoverflow", icon: domainLogos["stackoverflow"] || "💬" },
-        { name: "netflix", icon: domainLogos["netflix"] || "🎬" },
-        { name: "google", icon: domainLogos["google"] || "🌐" }
-      ]
+    // Use real-time logo search results when available
+    if (logoResults.length > 0 && query === logoSearchQuery) {
+      return logoResults.map(result => ({
+        name: result.name.replace(/^(the\s+)?/i, '').toLowerCase(),
+        icon: result.logo_url
+      }))
     }
 
-    // Search for companies based on the query
-    const searchTerm = query.toLowerCase().trim()
-    const allCompanies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'reddit', 'twitter', 'youtube', 'medium', 'stackoverflow', 'openai', 'nytimes', 'wsj', 'bloomberg', 'reuters', 'cnn', 'bbc', 'techcrunch', 'wired', 'verge', 'ycombinator']
-    
-    // Abbreviation mapping
-    const abbreviations: {[key: string]: string[]} = {
-      'nyt': ['nytimes'],
-      'ny': ['nytimes'],
-      'times': ['nytimes'],
-      'wsj': ['wsj'],
-      'wall': ['wsj'],
-      'street': ['wsj'],
-      'hacker': ['ycombinator'],
-      'ycomb': ['ycombinator'],
-      'yc': ['ycombinator'],
-      'fb': ['facebook'],
-      'ig': ['instagram'],
-      'yt': ['youtube'],
-      'gh': ['github'],
-      'ms': ['microsoft'],
-      'goog': ['google'],
-      'amzn': ['amazon'],
-      'nflx': ['netflix']
-    }
-    
-    // Find matches (direct name match, abbreviation match, or partial match)
-    let matches = []
-    
-    // First try abbreviation matches
-    if (abbreviations[searchTerm]) {
-      matches.push(...abbreviations[searchTerm])
-    }
-    
-    // Then try partial matches
-    const partialMatches = allCompanies.filter(company => 
-      company.includes(searchTerm) || searchTerm.includes(company)
-    )
-    matches.push(...partialMatches)
-    
-    // Remove duplicates and limit to 8
-    matches = Array.from(new Set(matches)).slice(0, 8)
-
-    // If no matches, return defaults
-    if (matches.length === 0) {
-      return [
-        { name: "github", icon: domainLogos["github"] || "🐙" },
-        { name: "reddit", icon: domainLogos["reddit"] || "🤖" },
-        { name: "twitter", icon: domainLogos["twitter"] || "🐦" },
-        { name: "google", icon: domainLogos["google"] || "🌐" }
-      ]
-    }
-
+    // Fallback defaults when no search or no results
     const fallbackEmojis: { [key: string]: string } = {
       'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
       'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
@@ -187,28 +132,47 @@ export default function HackerNewsClient() {
       'ycombinator': '🟠'
     }
 
-    return matches.map(company => ({
-      name: company,
-      icon: domainLogos[company] || fallbackEmojis[company] || company.charAt(0).toUpperCase()
-    }))
+    return [
+      { name: "github", icon: fallbackEmojis["github"] },
+      { name: "reddit", icon: fallbackEmojis["reddit"] },
+      { name: "twitter", icon: fallbackEmojis["twitter"] },
+      { name: "medium", icon: fallbackEmojis["medium"] },
+      { name: "youtube", icon: fallbackEmojis["youtube"] },
+      { name: "google", icon: fallbackEmojis["google"] },
+      { name: "netflix", icon: fallbackEmojis["netflix"] },
+      { name: "microsoft", icon: fallbackEmojis["microsoft"] }
+    ]
   }
 
-  // Fetch logos from logo.dev API
+  // Real-time logo search
   useEffect(() => {
-    const fetchLogos = async () => {
+    if (!commandSearchQuery || commandSearchQuery.length < 1) {
+      setLogoResults([])
+      setLogoSearchQuery("")
+      return
+    }
+
+    const searchLogos = async () => {
+      setLogoLoading(true)
+      setLogoSearchQuery(commandSearchQuery)
+      
       try {
-        const response = await fetch('/api/logos')
+        const response = await fetch(`/api/search-logos?q=${encodeURIComponent(commandSearchQuery)}`)
         if (response.ok) {
-          const logoData = await response.json()
-          setDomainLogos(logoData)
+          const results = await response.json()
+          setLogoResults(results)
         }
       } catch (error) {
-        console.log('Failed to fetch logos:', error)
+        console.error('Failed to search logos:', error)
+        setLogoResults([])
+      } finally {
+        setLogoLoading(false)
       }
     }
 
-    fetchLogos()
-  }, [])
+    const timeoutId = setTimeout(searchLogos, 150) // Debounce
+    return () => clearTimeout(timeoutId)
+  }, [commandSearchQuery])
 
   const fetchAISuggestions = async (query: string = "") => {
     setLoadingSuggestions(true)
