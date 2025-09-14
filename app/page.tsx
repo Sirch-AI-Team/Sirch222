@@ -129,7 +129,7 @@ export default function HackerNewsClient() {
     }
     
     // Remove duplicates and limit to 8
-    const uniqueCompanies = [...new Set(potentialCompanies)].slice(0, 8)
+    const uniqueCompanies = Array.from(new Set(potentialCompanies)).slice(0, 8)
     
     return uniqueCompanies.map(company => ({
       name: company,
