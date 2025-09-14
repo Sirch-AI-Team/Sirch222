@@ -122,6 +122,17 @@ export default function HackerNewsClient() {
     console.log(`[State Change] commandSearchQuery updated:`, commandSearchQuery)
   }, [commandSearchQuery])
 
+  // Helper function to close modal and reset all search state
+  const closeModalAndReset = () => {
+    console.log('[Modal] Closing and resetting all search state')
+    setShowCommandModal(false)
+    setCommandSearchQuery("")
+    setLogoResults([])
+    setLogoSearchQuery("")
+    setHighlightedDomainIndex(-1)
+    setHighlightedSuggestionIndex(-1)
+  }
+
   const getDynamicDomains = (query: string) => {
     console.log(`[getDynamicDomains] query: "${query}", logoSearchQuery: "${logoSearchQuery}", logoResults:`, logoResults)
     
@@ -199,7 +210,7 @@ export default function HackerNewsClient() {
       }
     }
 
-    const timeoutId = setTimeout(searchLogos, 150) // Debounce
+    const timeoutId = setTimeout(searchLogos, 100) // Debounce - faster for better UX
     return () => clearTimeout(timeoutId)
   }, [commandSearchQuery])
 
@@ -391,7 +402,7 @@ export default function HackerNewsClient() {
       {/* PopSearch Modal */}
       {showCommandModal && (
         <div className="fixed inset-0 z-50 flex items-center">
-          <div className="absolute inset-0 backdrop-blur-sm" onClick={() => setShowCommandModal(false)} />
+          <div className="absolute inset-0 backdrop-blur-sm" onClick={closeModalAndReset} />
           
           <div className="flex items-start" style={{ marginLeft: "calc((100vw - 640px) / 3)" }}>
             {/* PopSearch modal */}
@@ -492,14 +503,12 @@ export default function HackerNewsClient() {
                           : commandSearchQuery.trim()
                         
                         if (queryToSearch) {
-                          setShowCommandModal(false)
-                          setCommandSearchQuery("")
+                          closeModalAndReset()
                           performSearch(queryToSearch)
                         }
                       }
                       if (e.key === "Escape") {
-                        setShowCommandModal(false)
-                        setCommandSearchQuery("")
+                        closeModalAndReset()
                       }
                       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                         e.preventDefault()
@@ -552,8 +561,7 @@ export default function HackerNewsClient() {
                       <button
                         key={index}
                         onClick={() => {
-                          setShowCommandModal(false)
-                          setCommandSearchQuery("")
+                          closeModalAndReset()
                           performSearch(suggestion)
                         }}
                         onMouseEnter={() => {
