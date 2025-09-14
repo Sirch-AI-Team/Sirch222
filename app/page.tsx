@@ -83,24 +83,58 @@ export default function HackerNewsClient() {
     }
 
     if (alignedStoryIndex !== null && stories[alignedStoryIndex]?.summary) {
-      return stories[alignedStoryIndex].summary
+      const summary = stories[alignedStoryIndex].summary
+      // Clean up the summary text - remove extra whitespace and ensure proper formatting
+      const cleanedSummary = summary.trim().replace(/\s+/g, ' ')
+      
+      // If summary ends with incomplete sentence and "...", clean it up
+      if (cleanedSummary.endsWith('...')) {
+        // Find the last complete sentence
+        const lastPeriod = cleanedSummary.lastIndexOf('.', cleanedSummary.length - 4)
+        const lastExclamation = cleanedSummary.lastIndexOf('!', cleanedSummary.length - 4)
+        const lastQuestion = cleanedSummary.lastIndexOf('?', cleanedSummary.length - 4)
+        
+        const lastSentenceEnd = Math.max(lastPeriod, lastExclamation, lastQuestion)
+        
+        if (lastSentenceEnd > cleanedSummary.length * 0.5) {
+          // If we found a sentence ending in the latter half, use up to that point
+          return cleanedSummary.substring(0, lastSentenceEnd + 1)
+        }
+      }
+      
+      return cleanedSummary
     }
 
     return "Real-time HackerNews stories with AI-generated summaries. Updated every 10 minutes from the top 100 stories."
   }
 
   const getDynamicDomains = (query: string) => {
-    const domains = [
-      { name: "github", icon: "🐙" },
-      { name: "reddit", icon: "🤖" }, 
-      { name: "twitter", icon: "🐦" },
-      { name: "medium", icon: "📝" },
-      { name: "youtube", icon: "📺" },
-      { name: "stackoverflow", icon: "💬" },
-      { name: "techcrunch", icon: "📰" },
-      { name: "vercel", icon: "▲" }
-    ]
-    return domains
+    // Extract potential company names from the search query
+    const words = query.toLowerCase().split(' ').filter(word => word.length > 2)
+    const potentialCompanies = []
+    
+    // Common tech companies that might be relevant to searches
+    const techCompanies = ['google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'salesforce', 'oracle', 'ibm', 'twitter', 'linkedin', 'github', 'reddit', 'youtube', 'instagram', 'tiktok', 'discord', 'slack', 'zoom', 'dropbox', 'notion', 'figma', 'canva', 'shopify', 'stripe', 'paypal', 'coinbase', 'binance', 'openai', 'anthropic', 'deepmind', 'huggingface']
+    
+    // Find companies mentioned in the query
+    for (const word of words) {
+      if (techCompanies.includes(word)) {
+        potentialCompanies.push(word)
+      }
+    }
+    
+    // If no companies found in query, show default set
+    if (potentialCompanies.length === 0) {
+      potentialCompanies.push('github', 'reddit', 'twitter', 'medium', 'youtube', 'stackoverflow', 'techcrunch', 'vercel')
+    }
+    
+    // Remove duplicates and limit to 8
+    const uniqueCompanies = [...new Set(potentialCompanies)].slice(0, 8)
+    
+    return uniqueCompanies.map(company => ({
+      name: company,
+      icon: `https://img.logo.dev/${company}.com?token=sk_HEZ_g1QCQHqiUdzdKdvzpw&size=32`
+    }))
   }
 
   const fetchAISuggestions = async (query: string = "") => {
@@ -326,8 +360,17 @@ export default function HackerNewsClient() {
                           setHighlightedDomainIndex(-1)
                         }}
                       >
-                        <span>{domain.icon}</span>
-                        <span>{domain.name}</span>
+                        <img 
+                          src={domain.icon} 
+                          alt={`${domain.name} logo`}
+                          className="w-4 h-4 rounded-sm object-contain"
+                          onError={(e) => {
+                            // Fallback to text if logo fails to load
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).nextElementSibling!.textContent = domain.name.charAt(0).toUpperCase();
+                          }}
+                        />
+                        <span className="capitalize">{domain.name}</span>
                       </button>
                     ))}
                   </div>
@@ -349,6 +392,17 @@ export default function HackerNewsClient() {
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
+                        // Check if a domain button is highlighted
+                        if (highlightedDomainIndex >= 0) {
+                          const domains = getDynamicDomains(commandSearchQuery)
+                          const selectedDomain = domains[highlightedDomainIndex]
+                          if (selectedDomain) {
+                            setCommandSearchQuery(`site:${selectedDomain.name}.com `)
+                            setHighlightedDomainIndex(-1)
+                            return
+                          }
+                        }
+                        
                         const queryToSearch = highlightedSuggestionIndex >= 0 && suggestions[highlightedSuggestionIndex] 
                           ? suggestions[highlightedSuggestionIndex] 
                           : commandSearchQuery.trim()
@@ -380,6 +434,24 @@ export default function HackerNewsClient() {
                             return nextIndex
                           })
                         }
+                      }
+                      if (e.key === 'ArrowRight') {
+                        e.preventDefault()
+                        const domains = getDynamicDomains(commandSearchQuery)
+                        setHighlightedDomainIndex(prev => {
+                          if (prev === -1) return 0 // First press starts at first domain
+                          const nextIndex = prev < domains.length - 1 ? prev + 1 : 0
+                          return nextIndex
+                        })
+                      }
+                      if (e.key === 'ArrowLeft') {
+                        e.preventDefault()
+                        const domains = getDynamicDomains(commandSearchQuery)
+                        setHighlightedDomainIndex(prev => {
+                          if (prev === -1) return domains.length - 1 // First press starts at last domain
+                          const nextIndex = prev > 0 ? prev - 1 : domains.length - 1
+                          return nextIndex
+                        })
                       }
                     }}
                   />

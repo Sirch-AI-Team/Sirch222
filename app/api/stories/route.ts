@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const limit = searchParams.get("limit") || "50"
+    const limit = searchParams.get("limit") || "100"
     const offset = searchParams.get("offset") || "0"
 
     console.log("[v0] Fetching stories from Supabase API...")
