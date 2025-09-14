@@ -133,7 +133,7 @@ export default function HackerNewsClient() {
     
     return uniqueCompanies.map(company => ({
       name: company,
-      icon: `https://img.logo.dev/${company}.com?token=sk_HEZ_g1QCQHqiUdzdKdvzpw&size=32`
+      icon: `https://img.logo.dev/${company}.com?token=sk_HEZ_g1QCQHqiUdzdKdvzpw&size=64&format=png`
     }))
   }
 
@@ -363,11 +363,20 @@ export default function HackerNewsClient() {
                         <img 
                           src={domain.icon} 
                           alt={`${domain.name} logo`}
-                          className="w-4 h-4 rounded-sm object-contain"
+                          className="w-4 h-4 rounded-sm object-contain bg-white"
                           onError={(e) => {
-                            // Fallback to text if logo fails to load
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            (e.target as HTMLImageElement).nextElementSibling!.textContent = domain.name.charAt(0).toUpperCase();
+                            // Replace with emoji fallback if logo fails to load
+                            const fallbackEmojis: { [key: string]: string } = {
+                              'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
+                              'youtube': '📺', 'stackoverflow': '💬', 'techcrunch': '📰', 'vercel': '▲',
+                              'google': '🌐', 'microsoft': '💻', 'apple': '🍎', 'amazon': '📦',
+                              'facebook': '👥', 'meta': '🌐', 'netflix': '🎬', 'spotify': '🎵'
+                            };
+                            const img = e.target as HTMLImageElement;
+                            const fallback = document.createElement('span');
+                            fallback.textContent = fallbackEmojis[domain.name] || domain.name.charAt(0).toUpperCase();
+                            fallback.className = 'text-xs';
+                            img.parentNode?.replaceChild(fallback, img);
                           }}
                         />
                         <span className="capitalize">{domain.name}</span>
