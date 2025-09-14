@@ -112,6 +112,16 @@ export default function HackerNewsClient() {
   const [logoSearchQuery, setLogoSearchQuery] = useState("")
   const [logoLoading, setLogoLoading] = useState(false)
 
+  // Debug logo results changes
+  useEffect(() => {
+    console.log(`[State Change] logoResults updated:`, logoResults, `length: ${logoResults.length}`)
+  }, [logoResults])
+
+  // Debug search query changes  
+  useEffect(() => {
+    console.log(`[State Change] commandSearchQuery updated:`, commandSearchQuery)
+  }, [commandSearchQuery])
+
   const getDynamicDomains = (query: string) => {
     console.log(`[getDynamicDomains] query: "${query}", logoSearchQuery: "${logoSearchQuery}", logoResults:`, logoResults)
     
@@ -171,9 +181,13 @@ export default function HackerNewsClient() {
         if (response.ok) {
           const results = await response.json()
           console.log(`[Logo Search] Results:`, results)
+          console.log(`[Logo Search] Setting logoResults state to:`, results)
           setLogoResults(results)
+          console.log(`[Logo Search] logoResults state should now be:`, results)
         } else {
           console.error(`[Logo Search] API error: ${response.status} ${response.statusText}`)
+          const responseText = await response.text()
+          console.error(`[Logo Search] Response body:`, responseText)
           setLogoResults([])
         }
       } catch (error) {
