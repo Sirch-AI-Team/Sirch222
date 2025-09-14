@@ -108,6 +108,8 @@ export default function HackerNewsClient() {
     return "Real-time HackerNews stories with AI-generated summaries. Updated every 10 minutes from the top 100 stories."
   }
 
+  const [logoCache, setLogoCache] = useState<{[key: string]: string}>({})
+
   const getDynamicDomains = (query: string) => {
     // Extract potential company names from the search query
     const words = query.toLowerCase().split(' ').filter(word => word.length > 2)
@@ -131,11 +133,69 @@ export default function HackerNewsClient() {
     // Remove duplicates and limit to 8
     const uniqueCompanies = Array.from(new Set(potentialCompanies)).slice(0, 8)
     
+    // Fetch logos for companies and return with fallback emojis
+    const fallbackEmojis: { [key: string]: string } = {
+      'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
+      'youtube': '📺', 'stackoverflow': '💬', 'techcrunch': '📰', 'vercel': '▲',
+      'google': '🌐', 'microsoft': '💻', 'apple': '🍎', 'amazon': '📦',
+      'facebook': '👥', 'meta': '🌐', 'netflix': '🎬', 'spotify': '🎵'
+    }
+    
     return uniqueCompanies.map(company => ({
       name: company,
-      icon: `https://img.logo.dev/${company}.com?token=sk_HEZ_g1QCQHqiUdzdKdvzpw&size=64&format=png`
+      icon: logoCache[company] || fallbackEmojis[company] || company.charAt(0).toUpperCase()
     }))
   }
+  
+  // Fetch logos from logo.dev API
+  useEffect(() => {
+    const fetchLogos = async () => {
+      const words = commandSearchQuery.toLowerCase().split(' ').filter(word => word.length > 2)
+      const potentialCompanies = []
+      
+      const techCompanies = ['google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'salesforce', 'oracle', 'ibm', 'twitter', 'linkedin', 'github', 'reddit', 'youtube', 'instagram', 'tiktok', 'discord', 'slack', 'zoom', 'dropbox', 'notion', 'figma', 'canva', 'shopify', 'stripe', 'paypal', 'coinbase', 'binance', 'openai', 'anthropic', 'deepmind', 'huggingface']
+      
+      for (const word of words) {
+        if (techCompanies.includes(word)) {
+          potentialCompanies.push(word)
+        }
+      }
+      
+      if (potentialCompanies.length === 0) {
+        potentialCompanies.push('github', 'reddit', 'twitter', 'medium', 'youtube', 'stackoverflow', 'techcrunch', 'vercel')
+      }
+      
+      const uniqueCompanies = Array.from(new Set(potentialCompanies)).slice(0, 8)
+      
+      for (const company of uniqueCompanies) {
+        if (!logoCache[company]) {
+          try {
+            const response = await fetch(`https://api.logo.dev/search?q=${company}`, {
+              headers: {
+                'Authorization': `Bearer sk_HEZ_g1QCQHqiUdzdKdvzpw`
+              }
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              if (data.length > 0 && data[0].logo_url) {
+                setLogoCache(prev => ({
+                  ...prev,
+                  [company]: data[0].logo_url
+                }))
+              }
+            }
+          } catch (error) {
+            console.log(`Failed to fetch logo for ${company}:`, error)
+          }
+        }
+      }
+    }
+    
+    if (commandSearchQuery) {
+      fetchLogos()
+    }
+  }, [commandSearchQuery, logoCache])
 
   const fetchAISuggestions = async (query: string = "") => {
     setLoadingSuggestions(true)
@@ -360,25 +420,29 @@ export default function HackerNewsClient() {
                           setHighlightedDomainIndex(-1)
                         }}
                       >
-                        <img 
-                          src={domain.icon} 
-                          alt={`${domain.name} logo`}
-                          className="w-4 h-4 rounded-sm object-contain bg-white"
-                          onError={(e) => {
-                            // Replace with emoji fallback if logo fails to load
-                            const fallbackEmojis: { [key: string]: string } = {
-                              'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
-                              'youtube': '📺', 'stackoverflow': '💬', 'techcrunch': '📰', 'vercel': '▲',
-                              'google': '🌐', 'microsoft': '💻', 'apple': '🍎', 'amazon': '📦',
-                              'facebook': '👥', 'meta': '🌐', 'netflix': '🎬', 'spotify': '🎵'
-                            };
-                            const img = e.target as HTMLImageElement;
-                            const fallback = document.createElement('span');
-                            fallback.textContent = fallbackEmojis[domain.name] || domain.name.charAt(0).toUpperCase();
-                            fallback.className = 'text-xs';
-                            img.parentNode?.replaceChild(fallback, img);
-                          }}
-                        />
+                        {domain.icon.startsWith('http') ? (
+                          <img 
+                            src={domain.icon} 
+                            alt={`${domain.name} logo`}
+                            className="w-4 h-4 rounded-sm object-contain bg-white"
+                            onError={(e) => {
+                              // Replace with emoji fallback if logo fails to load
+                              const fallbackEmojis: { [key: string]: string } = {
+                                'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
+                                'youtube': '📺', 'stackoverflow': '💬', 'techcrunch': '📰', 'vercel': '▲',
+                                'google': '🌐', 'microsoft': '💻', 'apple': '🍎', 'amazon': '📦',
+                                'facebook': '👥', 'meta': '🌐', 'netflix': '🎬', 'spotify': '🎵'
+                              };
+                              const img = e.target as HTMLImageElement;
+                              const fallback = document.createElement('span');
+                              fallback.textContent = fallbackEmojis[domain.name] || domain.name.charAt(0).toUpperCase();
+                              fallback.className = 'text-xs';
+                              img.parentNode?.replaceChild(fallback, img);
+                            }}
+                          />
+                        ) : (
+                          <span className="text-xs">{domain.icon}</span>
+                        )}
                         <span className="capitalize">{domain.name}</span>
                       </button>
                     ))}
