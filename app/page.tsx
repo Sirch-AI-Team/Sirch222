@@ -165,7 +165,7 @@ export default function HackerNewsClient() {
     matches.push(...partialMatches)
     
     // Remove duplicates and limit to 8
-    matches = [...new Set(matches)].slice(0, 8)
+    matches = Array.from(new Set(matches)).slice(0, 8)
 
     // If no matches, return defaults
     if (matches.length === 0) {
