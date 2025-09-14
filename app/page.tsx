@@ -127,12 +127,45 @@ export default function HackerNewsClient() {
 
     // Search for companies based on the query
     const searchTerm = query.toLowerCase().trim()
-    const allCompanies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'salesforce', 'oracle', 'ibm', 'twitter', 'linkedin', 'reddit', 'youtube', 'instagram', 'tiktok', 'discord', 'slack', 'zoom', 'dropbox', 'notion', 'figma', 'canva', 'shopify', 'stripe', 'paypal', 'openai']
+    const allCompanies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'reddit', 'twitter', 'youtube', 'medium', 'stackoverflow', 'openai', 'nytimes', 'wsj', 'bloomberg', 'reuters', 'cnn', 'bbc', 'techcrunch', 'wired', 'verge', 'ycombinator']
     
-    // Find matches
-    const matches = allCompanies.filter(company => 
+    // Abbreviation mapping
+    const abbreviations: {[key: string]: string[]} = {
+      'nyt': ['nytimes'],
+      'ny': ['nytimes'],
+      'times': ['nytimes'],
+      'wsj': ['wsj'],
+      'wall': ['wsj'],
+      'street': ['wsj'],
+      'hacker': ['ycombinator'],
+      'ycomb': ['ycombinator'],
+      'yc': ['ycombinator'],
+      'fb': ['facebook'],
+      'ig': ['instagram'],
+      'yt': ['youtube'],
+      'gh': ['github'],
+      'ms': ['microsoft'],
+      'goog': ['google'],
+      'amzn': ['amazon'],
+      'nflx': ['netflix']
+    }
+    
+    // Find matches (direct name match, abbreviation match, or partial match)
+    let matches = []
+    
+    // First try abbreviation matches
+    if (abbreviations[searchTerm]) {
+      matches.push(...abbreviations[searchTerm])
+    }
+    
+    // Then try partial matches
+    const partialMatches = allCompanies.filter(company => 
       company.includes(searchTerm) || searchTerm.includes(company)
-    ).slice(0, 8)
+    )
+    matches.push(...partialMatches)
+    
+    // Remove duplicates and limit to 8
+    matches = [...new Set(matches)].slice(0, 8)
 
     // If no matches, return defaults
     if (matches.length === 0) {
@@ -152,13 +185,18 @@ export default function HackerNewsClient() {
 
   // Set up logos using Clearbit Logo API (no API key required)
   useEffect(() => {
-    const companies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'reddit', 'twitter', 'youtube', 'medium', 'stackoverflow', 'openai']
+    const companies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'reddit', 'twitter', 'youtube', 'medium', 'stackoverflow', 'openai', 'nytimes', 'wsj', 'bloomberg', 'reuters', 'cnn', 'bbc', 'techcrunch', 'wired', 'verge', 'ycombinator']
     
     const logoMap: {[key: string]: string} = {}
     
     companies.forEach(company => {
       // Use Clearbit Logo API - no API key required
-      logoMap[company] = `https://logo.clearbit.com/${company}.com`
+      const domain = company === 'nytimes' ? 'nytimes.com' : 
+                     company === 'wsj' ? 'wsj.com' :
+                     company === 'verge' ? 'theverge.com' :
+                     company === 'ycombinator' ? 'ycombinator.com' :
+                     `${company}.com`
+      logoMap[company] = `https://logo.clearbit.com/${domain}`
     })
 
     setDomainLogos(logoMap)
@@ -398,7 +436,10 @@ export default function HackerNewsClient() {
                                 'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
                                 'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
                                 'microsoft': '💻', 'apple': '🍎', 'amazon': '📦', 'facebook': '👥', 
-                                'meta': '🌐', 'spotify': '🎵', 'openai': '🤖'
+                                'meta': '🌐', 'spotify': '🎵', 'openai': '🤖', 'nytimes': '📰',
+                                'wsj': '💼', 'bloomberg': '💹', 'reuters': '📡', 'cnn': '📺',
+                                'bbc': '📻', 'techcrunch': '🚀', 'wired': '⚡', 'verge': '🔺',
+                                'ycombinator': '🟠'
                               };
                               const img = e.target as HTMLImageElement;
                               const fallback = document.createElement('span');
@@ -414,7 +455,10 @@ export default function HackerNewsClient() {
                                 'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
                                 'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
                                 'microsoft': '💻', 'apple': '🍎', 'amazon': '📦', 'facebook': '👥',
-                                'meta': '🌐', 'spotify': '🎵', 'openai': '🤖'
+                                'meta': '🌐', 'spotify': '🎵', 'openai': '🤖', 'nytimes': '📰',
+                                'wsj': '💼', 'bloomberg': '💹', 'reuters': '📡', 'cnn': '📺',
+                                'bbc': '📻', 'techcrunch': '🚀', 'wired': '⚡', 'verge': '🔺',
+                                'ycombinator': '🟠'
                               };
                               return fallbackEmojis[domain.name] || domain.name.charAt(0).toUpperCase();
                             })()}
