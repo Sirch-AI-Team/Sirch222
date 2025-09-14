@@ -149,7 +149,7 @@ export default function HackerNewsClient() {
       { name: "notion", icon: fallbackEmojis["notion"], domain: "notion.so" }
     ]
 
-    let domains = []
+    let domains: {name: string, icon: string, domain: string}[] = []
 
     // Use real-time logo search results when available
     if (logoResults.length > 0 && query === logoSearchQuery) {
