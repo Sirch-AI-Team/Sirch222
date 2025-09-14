@@ -640,7 +640,7 @@ export default function HackerNewsClient() {
         <div className="relative">
           <input
             type="text"
-            placeholder="Sirch the web"
+            placeholder="Sirch and you shall find"
             className={`w-full px-4 py-3 text-sm border rounded-lg focus:outline-none transition-colors cursor-pointer ${
               showCommandModal
                 ? "bg-white text-black border-gray-300 focus:border-gray-400 placeholder-gray-500"
