@@ -125,15 +125,22 @@ export default function HackerNewsClient() {
   const getDynamicDomains = (query: string) => {
     console.log(`[getDynamicDomains] query: "${query}", logoSearchQuery: "${logoSearchQuery}", logoResults:`, logoResults)
     
-    // Fallback defaults for popular sites
+    // Use real-time logo search results when available  
+    if (logoResults.length > 0 && query === logoSearchQuery) {
+      const domains = logoResults.map(result => ({
+        name: result.name.replace(/^(the\s+)?/i, ''),
+        icon: result.logo_url,
+        domain: result.domain
+      }))
+      console.log(`[getDynamicDomains] Returning ${domains.length} logo results:`, domains)
+      return domains.slice(0, 10) // Show top 10 from logo.dev
+    }
+
+    // Fallback defaults when no search query or no results
     const fallbackEmojis: { [key: string]: string } = {
       'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
       'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
-      'microsoft': '💻', 'apple': '🍎', 'amazon': '📦', 'facebook': '👥',
-      'meta': '🌐', 'spotify': '🎵', 'openai': '🤖', 'nytimes': '📰',
-      'wsj': '💼', 'bloomberg': '💹', 'reuters': '📡', 'cnn': '📺',
-      'bbc': '📻', 'techcrunch': '🚀', 'wired': '⚡', 'verge': '🔺',
-      'ycombinator': '🟠', 'stripe': '💳', 'notion': '📋', 'slack': '💬'
+      'microsoft': '💻', 'apple': '🍎'
     }
 
     const defaultDomains = [
@@ -145,34 +152,12 @@ export default function HackerNewsClient() {
       { name: "google", icon: fallbackEmojis["google"], domain: "google.com" },
       { name: "netflix", icon: fallbackEmojis["netflix"], domain: "netflix.com" },
       { name: "microsoft", icon: fallbackEmojis["microsoft"], domain: "microsoft.com" },
-      { name: "stripe", icon: fallbackEmojis["stripe"], domain: "stripe.com" },
-      { name: "notion", icon: fallbackEmojis["notion"], domain: "notion.so" }
+      { name: "stackoverflow", icon: fallbackEmojis["stackoverflow"], domain: "stackoverflow.com" },
+      { name: "apple", icon: fallbackEmojis["apple"], domain: "apple.com" }
     ]
 
-    let domains: {name: string, icon: string, domain: string}[] = []
-
-    // Use real-time logo search results when available
-    if (logoResults.length > 0 && query === logoSearchQuery) {
-      domains = logoResults.map(result => ({
-        name: result.name.replace(/^(the\s+)?/i, '').toLowerCase(),
-        icon: result.logo_url,
-        domain: result.domain
-      }))
-      console.log(`[getDynamicDomains] Found ${domains.length} logo results`)
-    }
-
-    // Fill remaining slots with defaults to always have 10 total
-    const remaining = 10 - domains.length
-    if (remaining > 0) {
-      // Filter out defaults that match existing results
-      const existingNames = new Set(domains.map(d => d.name.toLowerCase()))
-      const availableDefaults = defaultDomains.filter(d => !existingNames.has(d.name.toLowerCase()))
-      
-      domains = [...domains, ...availableDefaults.slice(0, remaining)]
-    }
-
-    console.log(`[getDynamicDomains] Returning ${domains.length} domains:`, domains)
-    return domains.slice(0, 10) // Ensure exactly 10 results
+    console.log(`[getDynamicDomains] Returning default domains`)
+    return defaultDomains
   }
 
   // Real-time logo search

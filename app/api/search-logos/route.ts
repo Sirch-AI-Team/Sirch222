@@ -96,7 +96,7 @@ export async function GET(request: Request) {
       }
     })
 
-    const logoPromises = Array.from(searchTerms).slice(0, 8).map(async (term) => {
+    const logoPromises = Array.from(searchTerms).slice(0, 3).map(async (term) => {
       try {
         const response = await fetch(`https://api.logo.dev/search?q=${encodeURIComponent(term)}`, {
           method: 'GET',
@@ -108,12 +108,13 @@ export async function GET(request: Request) {
         
         if (response.ok) {
           const data = await response.json()
-          if (Array.isArray(data) && data.length > 0 && data[0].logo_url) {
-            return { 
-              name: term,
-              logo_url: data[0].logo_url,
-              domain: data[0].domain || term
-            }
+          if (Array.isArray(data) && data.length > 0) {
+            // Return multiple results from this search term, up to 5
+            return data.slice(0, 5).map(item => ({
+              name: item.name || term,
+              logo_url: item.logo_url,
+              domain: item.domain || term
+            })).filter(item => item.logo_url) // Only include items with logos
           }
         }
       } catch (error) {
@@ -123,9 +124,18 @@ export async function GET(request: Request) {
     })
 
     const results = await Promise.all(logoPromises)
-    const validResults = results.filter(result => result !== null)
+    const allResults = results.filter(result => result !== null).flat() // Flatten arrays from multiple terms
     
-    return Response.json(validResults.slice(0, 8))
+    // Remove duplicates based on domain and limit to 10
+    const seen = new Set()
+    const uniqueResults = allResults.filter(result => {
+      const key = result.domain.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    
+    return Response.json(uniqueResults.slice(0, 10))
     
   } catch (error) {
     console.error("[Logo Search] Error:", error)
