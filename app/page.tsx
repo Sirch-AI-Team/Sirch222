@@ -150,44 +150,18 @@ export default function HackerNewsClient() {
     }))
   }
 
-  // Fetch logos when component mounts
+  // Set up logos using Clearbit Logo API (no API key required)
   useEffect(() => {
-    const fetchAllLogos = async () => {
-      const companies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'reddit', 'twitter', 'youtube', 'medium', 'stackoverflow', 'openai']
-      
-      const logoPromises = companies.map(async (company) => {
-        try {
-          const response = await fetch(`https://api.logo.dev/search?q=${company}`, {
-            headers: {
-              "Authorization": `Bearer pk_FjC0a9pEQ3mtM--cES0gLg`
-            }
-          })
-          
-          if (response.ok) {
-            const data = await response.json()
-            if (data.length > 0 && data[0].logo_url) {
-              return { company, logo_url: data[0].logo_url }
-            }
-          }
-        } catch (error) {
-          console.log(`Failed to fetch logo for ${company}`)
-        }
-        return null
-      })
+    const companies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'reddit', 'twitter', 'youtube', 'medium', 'stackoverflow', 'openai']
+    
+    const logoMap: {[key: string]: string} = {}
+    
+    companies.forEach(company => {
+      // Use Clearbit Logo API - no API key required
+      logoMap[company] = `https://logo.clearbit.com/${company}.com`
+    })
 
-      const results = await Promise.all(logoPromises)
-      const logoMap: {[key: string]: string} = {}
-      
-      results.forEach(result => {
-        if (result) {
-          logoMap[result.company] = result.logo_url
-        }
-      })
-
-      setDomainLogos(logoMap)
-    }
-
-    fetchAllLogos()
+    setDomainLogos(logoMap)
   }, [])
 
   const fetchAISuggestions = async (query: string = "") => {
