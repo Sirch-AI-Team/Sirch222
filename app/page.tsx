@@ -118,10 +118,16 @@ export default function HackerNewsClient() {
     // Common tech companies that might be relevant to searches
     const techCompanies = ['google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'salesforce', 'oracle', 'ibm', 'twitter', 'linkedin', 'github', 'reddit', 'youtube', 'instagram', 'tiktok', 'discord', 'slack', 'zoom', 'dropbox', 'notion', 'figma', 'canva', 'shopify', 'stripe', 'paypal', 'coinbase', 'binance', 'openai', 'anthropic', 'deepmind', 'huggingface']
     
-    // Find companies mentioned in the query
+    // Find companies mentioned in the query (exact match and partial match)
     for (const word of words) {
+      // Exact match
       if (techCompanies.includes(word)) {
         potentialCompanies.push(word)
+      }
+      // Partial match (if word is at least 2 characters)
+      else if (word.length >= 2) {
+        const matches = techCompanies.filter(company => company.toLowerCase().includes(word.toLowerCase()))
+        potentialCompanies.push(...matches.slice(0, 3)) // Limit partial matches to 3
       }
     }
     
@@ -155,18 +161,27 @@ export default function HackerNewsClient() {
       
       const techCompanies = ['google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'salesforce', 'oracle', 'ibm', 'twitter', 'linkedin', 'github', 'reddit', 'youtube', 'instagram', 'tiktok', 'discord', 'slack', 'zoom', 'dropbox', 'notion', 'figma', 'canva', 'shopify', 'stripe', 'paypal', 'coinbase', 'binance', 'openai', 'anthropic', 'deepmind', 'huggingface']
       
+      // Find companies mentioned in the query (exact match and partial match)
       for (const word of words) {
+        // Exact match
         if (techCompanies.includes(word)) {
           potentialCompanies.push(word)
         }
+        // Partial match (if word is at least 2 characters)
+        else if (word.length >= 2) {
+          const matches = techCompanies.filter(company => company.toLowerCase().includes(word.toLowerCase()))
+          potentialCompanies.push(...matches.slice(0, 3)) // Limit partial matches to 3
+        }
       }
       
+      // If no companies found in query, show default set
       if (potentialCompanies.length === 0) {
         potentialCompanies.push('github', 'reddit', 'twitter', 'medium', 'youtube', 'stackoverflow', 'techcrunch', 'vercel')
       }
       
       const uniqueCompanies = Array.from(new Set(potentialCompanies)).slice(0, 8)
       
+      // Fetch logos for all companies
       for (const company of uniqueCompanies) {
         if (!logoCache[company]) {
           try {
@@ -192,10 +207,42 @@ export default function HackerNewsClient() {
       }
     }
     
-    if (commandSearchQuery) {
+    // Fetch logos when modal opens or query changes
+    if (showCommandModal) {
       fetchLogos()
     }
-  }, [commandSearchQuery, logoCache])
+  }, [showCommandModal, commandSearchQuery, logoCache])
+  
+  // Also fetch default logos when modal first opens
+  useEffect(() => {
+    if (showCommandModal && Object.keys(logoCache).length === 0) {
+      const defaultCompanies = ['github', 'reddit', 'twitter', 'medium', 'youtube', 'stackoverflow', 'techcrunch', 'vercel']
+      const fetchDefaultLogos = async () => {
+        for (const company of defaultCompanies) {
+          try {
+            const response = await fetch(`https://api.logo.dev/search?q=${company}`, {
+              headers: {
+                'Authorization': `Bearer sk_HEZ_g1QCQHqiUdzdKdvzpw`
+              }
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              if (data.length > 0 && data[0].logo_url) {
+                setLogoCache(prev => ({
+                  ...prev,
+                  [company]: data[0].logo_url
+                }))
+              }
+            }
+          } catch (error) {
+            console.log(`Failed to fetch default logo for ${company}:`, error)
+          }
+        }
+      }
+      fetchDefaultLogos()
+    }
+  }, [showCommandModal, logoCache])
 
   const fetchAISuggestions = async (query: string = "") => {
     setLoadingSuggestions(true)
