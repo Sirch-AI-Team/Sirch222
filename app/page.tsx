@@ -119,7 +119,8 @@ export default function HackerNewsClient() {
     if (logoResults.length > 0 && query === logoSearchQuery) {
       const domains = logoResults.map(result => ({
         name: result.name.replace(/^(the\s+)?/i, '').toLowerCase(),
-        icon: result.logo_url
+        icon: result.logo_url,
+        domain: result.domain // Keep the actual domain (sefaria.org, not sefaria.com)
       }))
       console.log(`[getDynamicDomains] Returning logo results:`, domains)
       return domains
@@ -137,14 +138,14 @@ export default function HackerNewsClient() {
     }
 
     return [
-      { name: "github", icon: fallbackEmojis["github"] },
-      { name: "reddit", icon: fallbackEmojis["reddit"] },
-      { name: "twitter", icon: fallbackEmojis["twitter"] },
-      { name: "medium", icon: fallbackEmojis["medium"] },
-      { name: "youtube", icon: fallbackEmojis["youtube"] },
-      { name: "google", icon: fallbackEmojis["google"] },
-      { name: "netflix", icon: fallbackEmojis["netflix"] },
-      { name: "microsoft", icon: fallbackEmojis["microsoft"] }
+      { name: "github", icon: fallbackEmojis["github"], domain: "github.com" },
+      { name: "reddit", icon: fallbackEmojis["reddit"], domain: "reddit.com" },
+      { name: "twitter", icon: fallbackEmojis["twitter"], domain: "twitter.com" },
+      { name: "medium", icon: fallbackEmojis["medium"], domain: "medium.com" },
+      { name: "youtube", icon: fallbackEmojis["youtube"], domain: "youtube.com" },
+      { name: "google", icon: fallbackEmojis["google"], domain: "google.com" },
+      { name: "netflix", icon: fallbackEmojis["netflix"], domain: "netflix.com" },
+      { name: "microsoft", icon: fallbackEmojis["microsoft"], domain: "microsoft.com" }
     ]
   }
 
@@ -406,7 +407,8 @@ export default function HackerNewsClient() {
                         }`}
                         onMouseEnter={() => setHighlightedDomainIndex(index)}
                         onClick={() => {
-                          setCommandSearchQuery(`site:${domain.name}.com `)
+                          const siteQuery = domain.domain ? `site:${domain.domain} ` : `site:${domain.name}.com `
+                          setCommandSearchQuery(siteQuery)
                           setHighlightedDomainIndex(-1)
                         }}
                       >
@@ -463,7 +465,8 @@ export default function HackerNewsClient() {
                           const domains = getDynamicDomains(commandSearchQuery)
                           const selectedDomain = domains[highlightedDomainIndex]
                           if (selectedDomain) {
-                            setCommandSearchQuery(`site:${selectedDomain.name}.com `)
+                            const siteQuery = selectedDomain.domain ? `site:${selectedDomain.domain} ` : `site:${selectedDomain.name}.com `
+                            setCommandSearchQuery(siteQuery)
                             setHighlightedDomainIndex(-1)
                             return
                           }
