@@ -458,7 +458,7 @@ export default function HackerNewsClient() {
                                 'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
                                 'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
                                 'microsoft': '💻', 'apple': '🍎', 'amazon': '📦', 'facebook': '👥', 
-                                'meta': '🌐', 'spotify': '🎵', 'openai': '🤖', 'nytimes': '📰',
+                                'meta': '🌐', 'openai': '🤖', 'nytimes': '📰',
                                 'wsj': '💼', 'bloomberg': '💹', 'reuters': '📡', 'cnn': '📺',
                                 'bbc': '📻', 'techcrunch': '🚀', 'wired': '⚡', 'verge': '🔺',
                                 'ycombinator': '🟠'
@@ -635,41 +635,63 @@ export default function HackerNewsClient() {
         </div>
       </div>
 
-      {/* Bottom left links */}
-      <div className="fixed bottom-6 left-6 flex gap-3">
-        {searchQuery ? (
-          <button
-            onClick={() => {
-              setSearchQuery("")
-              setSearchResults([])
-              setAlignedSearchIndex(null)
+      {/* Bottom left search bar */}
+      <div className="fixed bottom-6 left-6 w-80">
+        <div className="relative">
+          <input 
+            type="text"
+            placeholder="Sirch the web"
+            className="w-full px-4 py-3 text-sm bg-black text-white border border-gray-800 rounded-lg focus:outline-none focus:border-gray-600 transition-colors placeholder-gray-400"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                setShowCommandModal(false)
+                setSearchQuery(e.currentTarget.value.trim())
+                performSearch(e.currentTarget.value.trim())
+                e.currentTarget.value = ""
+              }
             }}
-            className="text-xs text-black hover:text-gray-600 transition-colors"
-          >
-            Back to HackerNews
-          </button>
-        ) : (
+          />
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs pointer-events-none">
+            ⏎
+          </div>
+        </div>
+        
+        {/* Footer links */}
+        <div className="flex gap-3 mt-3">
+          {searchQuery ? (
+            <button
+              onClick={() => {
+                setSearchQuery("")
+                setSearchResults([])
+                setAlignedSearchIndex(null)
+              }}
+              className="text-xs text-black hover:text-gray-600 transition-colors"
+            >
+              Back to HackerNews
+            </button>
+          ) : (
+            <button
+              onClick={() => window.location.reload()}
+              className="text-xs text-black hover:text-gray-600 transition-colors"
+            >
+              Refresh Stories
+            </button>
+          )}
+          
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => setShowCommandModal(true)}
             className="text-xs text-black hover:text-gray-600 transition-colors"
           >
-            Refresh Stories
+            Sirch
           </button>
-        )}
-        
-        <button
-          onClick={() => setShowCommandModal(true)}
-          className="text-xs text-black hover:text-gray-600 transition-colors"
-        >
-          Sirch
-        </button>
-        
-        <a 
-          href="mailto:josh@sirch.org" 
-          className="text-xs text-black hover:text-gray-600 transition-colors"
-        >
-          Contact
-        </a>
+          
+          <a 
+            href="mailto:josh@sirch.org" 
+            className="text-xs text-black hover:text-gray-600 transition-colors"
+          >
+            Contact
+          </a>
+        </div>
       </div>
 
       {/* Main content */}
