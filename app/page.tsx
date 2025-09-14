@@ -113,12 +113,16 @@ export default function HackerNewsClient() {
   const [logoLoading, setLogoLoading] = useState(false)
 
   const getDynamicDomains = (query: string) => {
+    console.log(`[getDynamicDomains] query: "${query}", logoSearchQuery: "${logoSearchQuery}", logoResults:`, logoResults)
+    
     // Use real-time logo search results when available
     if (logoResults.length > 0 && query === logoSearchQuery) {
-      return logoResults.map(result => ({
+      const domains = logoResults.map(result => ({
         name: result.name.replace(/^(the\s+)?/i, '').toLowerCase(),
         icon: result.logo_url
       }))
+      console.log(`[getDynamicDomains] Returning logo results:`, domains)
+      return domains
     }
 
     // Fallback defaults when no search or no results
@@ -153,17 +157,26 @@ export default function HackerNewsClient() {
     }
 
     const searchLogos = async () => {
+      console.log(`[Logo Search] Searching for: "${commandSearchQuery}"`)
       setLogoLoading(true)
       setLogoSearchQuery(commandSearchQuery)
       
       try {
-        const response = await fetch(`/api/search-logos?q=${encodeURIComponent(commandSearchQuery)}`)
+        const url = `/api/search-logos?q=${encodeURIComponent(commandSearchQuery)}`
+        console.log(`[Logo Search] Fetching: ${url}`)
+        const response = await fetch(url)
+        console.log(`[Logo Search] Response status: ${response.status}`)
+        
         if (response.ok) {
           const results = await response.json()
+          console.log(`[Logo Search] Results:`, results)
           setLogoResults(results)
+        } else {
+          console.error(`[Logo Search] API error: ${response.status} ${response.statusText}`)
+          setLogoResults([])
         }
       } catch (error) {
-        console.error('Failed to search logos:', error)
+        console.error('[Logo Search] Failed to search logos:', error)
         setLogoResults([])
       } finally {
         setLogoLoading(false)
