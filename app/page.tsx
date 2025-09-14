@@ -638,15 +638,21 @@ export default function HackerNewsClient() {
       {/* Bottom left search bar */}
       <div className="fixed bottom-6 left-6 w-80">
         <div className="relative">
-          <input 
+          <input
             type="text"
             placeholder="Sirch the web"
-            className="w-full px-4 py-3 text-sm bg-black text-white border border-gray-800 rounded-lg focus:outline-none focus:border-gray-600 transition-colors placeholder-gray-400 cursor-pointer"
+            className={`w-full px-4 py-3 text-sm border rounded-lg focus:outline-none transition-colors cursor-pointer ${
+              showCommandModal
+                ? "bg-white text-black border-gray-300 focus:border-gray-400 placeholder-gray-500"
+                : "bg-black text-white border-gray-800 focus:border-gray-600 placeholder-gray-400"
+            }`}
             onClick={() => setShowCommandModal(true)}
             onFocus={() => setShowCommandModal(true)}
             readOnly
           />
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs pointer-events-none">
+          <div className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-xs pointer-events-none transition-colors ${
+            showCommandModal ? "text-gray-600" : "text-gray-500"
+          }`}>
             ⌘K
           </div>
         </div>
