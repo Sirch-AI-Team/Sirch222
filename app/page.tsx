@@ -114,14 +114,14 @@ export default function HackerNewsClient() {
     // If query is short or empty, show default domains
     if (!query || query.length < 2) {
       return [
-        { name: "github", logo_url: domainLogos["github"] },
-        { name: "reddit", logo_url: domainLogos["reddit"] },
-        { name: "twitter", logo_url: domainLogos["twitter"] },
-        { name: "medium", logo_url: domainLogos["medium"] },
-        { name: "youtube", logo_url: domainLogos["youtube"] },
-        { name: "stackoverflow", logo_url: domainLogos["stackoverflow"] },
-        { name: "netflix", logo_url: domainLogos["netflix"] },
-        { name: "google", logo_url: domainLogos["google"] }
+        { name: "github", icon: domainLogos["github"] || "🐙" },
+        { name: "reddit", icon: domainLogos["reddit"] || "🤖" },
+        { name: "twitter", icon: domainLogos["twitter"] || "🐦" },
+        { name: "medium", icon: domainLogos["medium"] || "📝" },
+        { name: "youtube", icon: domainLogos["youtube"] || "📺" },
+        { name: "stackoverflow", icon: domainLogos["stackoverflow"] || "💬" },
+        { name: "netflix", icon: domainLogos["netflix"] || "🎬" },
+        { name: "google", icon: domainLogos["google"] || "🌐" }
       ]
     }
 
@@ -170,36 +170,44 @@ export default function HackerNewsClient() {
     // If no matches, return defaults
     if (matches.length === 0) {
       return [
-        { name: "github", logo_url: domainLogos["github"] },
-        { name: "reddit", logo_url: domainLogos["reddit"] },
-        { name: "twitter", logo_url: domainLogos["twitter"] },
-        { name: "google", logo_url: domainLogos["google"] }
+        { name: "github", icon: domainLogos["github"] || "🐙" },
+        { name: "reddit", icon: domainLogos["reddit"] || "🤖" },
+        { name: "twitter", icon: domainLogos["twitter"] || "🐦" },
+        { name: "google", icon: domainLogos["google"] || "🌐" }
       ]
+    }
+
+    const fallbackEmojis: { [key: string]: string } = {
+      'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
+      'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
+      'microsoft': '💻', 'apple': '🍎', 'amazon': '📦', 'facebook': '👥',
+      'meta': '🌐', 'spotify': '🎵', 'openai': '🤖', 'nytimes': '📰',
+      'wsj': '💼', 'bloomberg': '💹', 'reuters': '📡', 'cnn': '📺',
+      'bbc': '📻', 'techcrunch': '🚀', 'wired': '⚡', 'verge': '🔺',
+      'ycombinator': '🟠'
     }
 
     return matches.map(company => ({
       name: company,
-      logo_url: domainLogos[company]
+      icon: domainLogos[company] || fallbackEmojis[company] || company.charAt(0).toUpperCase()
     }))
   }
 
-  // Set up logos using Clearbit Logo API (no API key required)
+  // Fetch logos from logo.dev API
   useEffect(() => {
-    const companies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'reddit', 'twitter', 'youtube', 'medium', 'stackoverflow', 'openai', 'nytimes', 'wsj', 'bloomberg', 'reuters', 'cnn', 'bbc', 'techcrunch', 'wired', 'verge', 'ycombinator']
-    
-    const logoMap: {[key: string]: string} = {}
-    
-    companies.forEach(company => {
-      // Use Clearbit Logo API - no API key required
-      const domain = company === 'nytimes' ? 'nytimes.com' : 
-                     company === 'wsj' ? 'wsj.com' :
-                     company === 'verge' ? 'theverge.com' :
-                     company === 'ycombinator' ? 'ycombinator.com' :
-                     `${company}.com`
-      logoMap[company] = `https://logo.clearbit.com/${domain}`
-    })
+    const fetchLogos = async () => {
+      try {
+        const response = await fetch('/api/logos')
+        if (response.ok) {
+          const logoData = await response.json()
+          setDomainLogos(logoData)
+        }
+      } catch (error) {
+        console.log('Failed to fetch logos:', error)
+      }
+    }
 
-    setDomainLogos(logoMap)
+    fetchLogos()
   }, [])
 
   const fetchAISuggestions = async (query: string = "") => {
@@ -425,9 +433,9 @@ export default function HackerNewsClient() {
                           setHighlightedDomainIndex(-1)
                         }}
                       >
-                        {domain.logo_url ? (
+                        {domain.icon.startsWith('http') ? (
                           <img 
-                            src={domain.logo_url} 
+                            src={domain.icon} 
                             alt={`${domain.name} logo`}
                             className="w-4 h-4 rounded-sm object-contain bg-white"
                             onError={(e) => {
@@ -449,20 +457,7 @@ export default function HackerNewsClient() {
                             }}
                           />
                         ) : (
-                          <span className="text-xs">
-                            {(() => {
-                              const fallbackEmojis: { [key: string]: string } = {
-                                'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
-                                'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
-                                'microsoft': '💻', 'apple': '🍎', 'amazon': '📦', 'facebook': '👥',
-                                'meta': '🌐', 'spotify': '🎵', 'openai': '🤖', 'nytimes': '📰',
-                                'wsj': '💼', 'bloomberg': '💹', 'reuters': '📡', 'cnn': '📺',
-                                'bbc': '📻', 'techcrunch': '🚀', 'wired': '⚡', 'verge': '🔺',
-                                'ycombinator': '🟠'
-                              };
-                              return fallbackEmojis[domain.name] || domain.name.charAt(0).toUpperCase();
-                            })()}
-                          </span>
+                          <span className="text-xs">{domain.icon}</span>
                         )}
                         <span className="capitalize">{domain.name}</span>
                       </button>
