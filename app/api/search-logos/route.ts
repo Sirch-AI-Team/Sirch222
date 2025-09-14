@@ -81,10 +81,12 @@ export async function GET(request: Request) {
     
     // Direct search term
     searchTerms.add(searchTerm)
+    console.log(`[Logo Search API] Starting with direct term: "${searchTerm}"`)
     
     // Check mappings
     for (const [key, values] of Object.entries(companyMappings)) {
       if (key.startsWith(searchTerm) || searchTerm.startsWith(key)) {
+        console.log(`[Logo Search API] startsWith match: "${searchTerm}" <-> "${key}", adding:`, values)
         values.forEach(v => searchTerms.add(v))
       }
     }
@@ -92,9 +94,12 @@ export async function GET(request: Request) {
     // Also try partial matches on company names
     Object.keys(companyMappings).forEach(company => {
       if (company.includes(searchTerm) || searchTerm.includes(company)) {
+        console.log(`[Logo Search API] includes match: "${searchTerm}" <-> "${company}", adding:`, companyMappings[company])
         companyMappings[company]?.forEach(v => searchTerms.add(v))
       }
     })
+    
+    console.log(`[Logo Search API] Final search terms:`, Array.from(searchTerms))
 
     const logoPromises = Array.from(searchTerms).slice(0, 3).map(async (term) => {
       try {
