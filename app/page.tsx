@@ -195,6 +195,15 @@ export default function HackerNewsClient() {
           console.log(`[Logo Search] Results:`, results)
           console.log(`[Logo Search] Setting logoResults state to:`, results)
           setLogoResults(results)
+          
+          // Auto-highlight first logo result if we have results and no space in query
+          if (results.length > 0 && !commandSearchQuery.includes(' ')) {
+            console.log(`[Logo Search] Auto-highlighting first result`)
+            setHighlightedDomainIndex(0)
+          } else {
+            setHighlightedDomainIndex(-1)
+          }
+          
           console.log(`[Logo Search] logoResults state should now be:`, results)
         } else {
           console.error(`[Logo Search] API error: ${response.status} ${response.statusText}`)
@@ -433,9 +442,9 @@ export default function HackerNewsClient() {
                         }`}
                         onMouseEnter={() => setHighlightedDomainIndex(index)}
                         onClick={() => {
-                          const siteQuery = domain.domain ? `site:${domain.domain} ` : `site:${domain.name}.com `
-                          setCommandSearchQuery(siteQuery)
-                          setHighlightedDomainIndex(-1)
+                          console.log(`[Click] Navigating to ${domain.domain}`)
+                          closeModalAndReset()
+                          window.open(`https://${domain.domain}`, '_blank')
                         }}
                       >
                         {domain.icon.startsWith('http') ? (
@@ -481,19 +490,28 @@ export default function HackerNewsClient() {
                     type="text"
                     placeholder="Type a command or search..."
                     value={commandSearchQuery}
-                    onChange={(e) => setCommandSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      const newValue = e.target.value
+                      setCommandSearchQuery(newValue)
+                      
+                      // If user adds a space, remove domain highlighting
+                      if (newValue.includes(' ') && highlightedDomainIndex >= 0) {
+                        console.log(`[Space] Removing domain highlight`)
+                        setHighlightedDomainIndex(-1)
+                      }
+                    }}
                     className="w-full pl-10 pr-4 py-3 text-sm bg-black text-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 transition-colors placeholder-gray-400"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        // Check if a domain button is highlighted
+                        // Check if a domain button is highlighted - navigate directly to site
                         if (highlightedDomainIndex >= 0) {
                           const domains = getDynamicDomains(commandSearchQuery)
                           const selectedDomain = domains[highlightedDomainIndex]
                           if (selectedDomain) {
-                            const siteQuery = selectedDomain.domain ? `site:${selectedDomain.domain} ` : `site:${selectedDomain.name}.com `
-                            setCommandSearchQuery(siteQuery)
-                            setHighlightedDomainIndex(-1)
+                            console.log(`[Enter] Navigating to ${selectedDomain.domain}`)
+                            closeModalAndReset()
+                            window.open(`https://${selectedDomain.domain}`, '_blank')
                             return
                           }
                         }
