@@ -108,141 +108,87 @@ export default function HackerNewsClient() {
     return "Real-time HackerNews stories with AI-generated summaries. Updated every 10 minutes from the top 100 stories."
   }
 
-  const [logoCache, setLogoCache] = useState<{[key: string]: string}>({})
+  const [domainLogos, setDomainLogos] = useState<{[key: string]: string}>({})
 
   const getDynamicDomains = (query: string) => {
-    // Extract potential company names from the search query
-    const words = query.toLowerCase().split(' ').filter(word => word.length > 2)
-    const potentialCompanies = []
-    
-    // Common tech companies that might be relevant to searches
-    const techCompanies = ['google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'salesforce', 'oracle', 'ibm', 'twitter', 'linkedin', 'github', 'reddit', 'youtube', 'instagram', 'tiktok', 'discord', 'slack', 'zoom', 'dropbox', 'notion', 'figma', 'canva', 'shopify', 'stripe', 'paypal', 'coinbase', 'binance', 'openai', 'anthropic', 'deepmind', 'huggingface']
-    
-    // Find companies mentioned in the query (exact match and partial match)
-    for (const word of words) {
-      // Exact match
-      if (techCompanies.includes(word)) {
-        potentialCompanies.push(word)
-      }
-      // Partial match (if word is at least 2 characters)
-      else if (word.length >= 2) {
-        const matches = techCompanies.filter(company => company.toLowerCase().includes(word.toLowerCase()))
-        potentialCompanies.push(...matches.slice(0, 3)) // Limit partial matches to 3
-      }
+    // If query is short or empty, show default domains
+    if (!query || query.length < 2) {
+      return [
+        { name: "github", logo_url: domainLogos["github"] },
+        { name: "reddit", logo_url: domainLogos["reddit"] },
+        { name: "twitter", logo_url: domainLogos["twitter"] },
+        { name: "medium", logo_url: domainLogos["medium"] },
+        { name: "youtube", logo_url: domainLogos["youtube"] },
+        { name: "stackoverflow", logo_url: domainLogos["stackoverflow"] },
+        { name: "netflix", logo_url: domainLogos["netflix"] },
+        { name: "google", logo_url: domainLogos["google"] }
+      ]
     }
+
+    // Search for companies based on the query
+    const searchTerm = query.toLowerCase().trim()
+    const allCompanies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'salesforce', 'oracle', 'ibm', 'twitter', 'linkedin', 'reddit', 'youtube', 'instagram', 'tiktok', 'discord', 'slack', 'zoom', 'dropbox', 'notion', 'figma', 'canva', 'shopify', 'stripe', 'paypal', 'openai']
     
-    // If no companies found in query, show default set
-    if (potentialCompanies.length === 0) {
-      potentialCompanies.push('github', 'reddit', 'twitter', 'medium', 'youtube', 'stackoverflow', 'techcrunch', 'vercel')
+    // Find matches
+    const matches = allCompanies.filter(company => 
+      company.includes(searchTerm) || searchTerm.includes(company)
+    ).slice(0, 8)
+
+    // If no matches, return defaults
+    if (matches.length === 0) {
+      return [
+        { name: "github", logo_url: domainLogos["github"] },
+        { name: "reddit", logo_url: domainLogos["reddit"] },
+        { name: "twitter", logo_url: domainLogos["twitter"] },
+        { name: "google", logo_url: domainLogos["google"] }
+      ]
     }
-    
-    // Remove duplicates and limit to 8
-    const uniqueCompanies = Array.from(new Set(potentialCompanies)).slice(0, 8)
-    
-    // Fetch logos for companies and return with fallback emojis
-    const fallbackEmojis: { [key: string]: string } = {
-      'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
-      'youtube': '📺', 'stackoverflow': '💬', 'techcrunch': '📰', 'vercel': '▲',
-      'google': '🌐', 'microsoft': '💻', 'apple': '🍎', 'amazon': '📦',
-      'facebook': '👥', 'meta': '🌐', 'netflix': '🎬', 'spotify': '🎵'
-    }
-    
-    return uniqueCompanies.map(company => ({
+
+    return matches.map(company => ({
       name: company,
-      icon: logoCache[company] || fallbackEmojis[company] || company.charAt(0).toUpperCase()
+      logo_url: domainLogos[company]
     }))
   }
-  
-  // Fetch logos from logo.dev API
+
+  // Fetch logos when component mounts
   useEffect(() => {
-    const fetchLogos = async () => {
-      const words = commandSearchQuery.toLowerCase().split(' ').filter(word => word.length > 2)
-      const potentialCompanies = []
+    const fetchAllLogos = async () => {
+      const companies = ['github', 'google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'reddit', 'twitter', 'youtube', 'medium', 'stackoverflow', 'openai']
       
-      const techCompanies = ['google', 'microsoft', 'apple', 'amazon', 'facebook', 'meta', 'netflix', 'spotify', 'uber', 'airbnb', 'tesla', 'nvidia', 'intel', 'adobe', 'salesforce', 'oracle', 'ibm', 'twitter', 'linkedin', 'github', 'reddit', 'youtube', 'instagram', 'tiktok', 'discord', 'slack', 'zoom', 'dropbox', 'notion', 'figma', 'canva', 'shopify', 'stripe', 'paypal', 'coinbase', 'binance', 'openai', 'anthropic', 'deepmind', 'huggingface']
-      
-      // Find companies mentioned in the query (exact match and partial match)
-      for (const word of words) {
-        // Exact match
-        if (techCompanies.includes(word)) {
-          potentialCompanies.push(word)
-        }
-        // Partial match (if word is at least 2 characters)
-        else if (word.length >= 2) {
-          const matches = techCompanies.filter(company => company.toLowerCase().includes(word.toLowerCase()))
-          potentialCompanies.push(...matches.slice(0, 3)) // Limit partial matches to 3
-        }
-      }
-      
-      // If no companies found in query, show default set
-      if (potentialCompanies.length === 0) {
-        potentialCompanies.push('github', 'reddit', 'twitter', 'medium', 'youtube', 'stackoverflow', 'techcrunch', 'vercel')
-      }
-      
-      const uniqueCompanies = Array.from(new Set(potentialCompanies)).slice(0, 8)
-      
-      // Fetch logos for all companies
-      for (const company of uniqueCompanies) {
-        if (!logoCache[company]) {
-          try {
-            const response = await fetch(`https://api.logo.dev/search?q=${company}`, {
-              headers: {
-                'Authorization': `Bearer sk_HEZ_g1QCQHqiUdzdKdvzpw`
-              }
-            })
-            
-            if (response.ok) {
-              const data = await response.json()
-              if (data.length > 0 && data[0].logo_url) {
-                setLogoCache(prev => ({
-                  ...prev,
-                  [company]: data[0].logo_url
-                }))
-              }
+      const logoPromises = companies.map(async (company) => {
+        try {
+          const response = await fetch(`https://api.logo.dev/search?q=${company}`, {
+            headers: {
+              "Authorization": `Bearer pk_FjC0a9pEQ3mtM--cES0gLg`
             }
-          } catch (error) {
-            console.log(`Failed to fetch logo for ${company}:`, error)
-          }
-        }
-      }
-    }
-    
-    // Fetch logos when modal opens or query changes
-    if (showCommandModal) {
-      fetchLogos()
-    }
-  }, [showCommandModal, commandSearchQuery, logoCache])
-  
-  // Also fetch default logos when modal first opens
-  useEffect(() => {
-    if (showCommandModal && Object.keys(logoCache).length === 0) {
-      const defaultCompanies = ['github', 'reddit', 'twitter', 'medium', 'youtube', 'stackoverflow', 'techcrunch', 'vercel']
-      const fetchDefaultLogos = async () => {
-        for (const company of defaultCompanies) {
-          try {
-            const response = await fetch(`https://api.logo.dev/search?q=${company}`, {
-              headers: {
-                'Authorization': `Bearer sk_HEZ_g1QCQHqiUdzdKdvzpw`
-              }
-            })
-            
-            if (response.ok) {
-              const data = await response.json()
-              if (data.length > 0 && data[0].logo_url) {
-                setLogoCache(prev => ({
-                  ...prev,
-                  [company]: data[0].logo_url
-                }))
-              }
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.length > 0 && data[0].logo_url) {
+              return { company, logo_url: data[0].logo_url }
             }
-          } catch (error) {
-            console.log(`Failed to fetch default logo for ${company}:`, error)
           }
+        } catch (error) {
+          console.log(`Failed to fetch logo for ${company}`)
         }
-      }
-      fetchDefaultLogos()
+        return null
+      })
+
+      const results = await Promise.all(logoPromises)
+      const logoMap: {[key: string]: string} = {}
+      
+      results.forEach(result => {
+        if (result) {
+          logoMap[result.company] = result.logo_url
+        }
+      })
+
+      setDomainLogos(logoMap)
     }
-  }, [showCommandModal, logoCache])
+
+    fetchAllLogos()
+  }, [])
 
   const fetchAISuggestions = async (query: string = "") => {
     setLoadingSuggestions(true)
@@ -467,18 +413,18 @@ export default function HackerNewsClient() {
                           setHighlightedDomainIndex(-1)
                         }}
                       >
-                        {domain.icon.startsWith('http') ? (
+                        {domain.logo_url ? (
                           <img 
-                            src={domain.icon} 
+                            src={domain.logo_url} 
                             alt={`${domain.name} logo`}
                             className="w-4 h-4 rounded-sm object-contain bg-white"
                             onError={(e) => {
                               // Replace with emoji fallback if logo fails to load
                               const fallbackEmojis: { [key: string]: string } = {
                                 'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
-                                'youtube': '📺', 'stackoverflow': '💬', 'techcrunch': '📰', 'vercel': '▲',
-                                'google': '🌐', 'microsoft': '💻', 'apple': '🍎', 'amazon': '📦',
-                                'facebook': '👥', 'meta': '🌐', 'netflix': '🎬', 'spotify': '🎵'
+                                'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
+                                'microsoft': '💻', 'apple': '🍎', 'amazon': '📦', 'facebook': '👥', 
+                                'meta': '🌐', 'spotify': '🎵', 'openai': '🤖'
                               };
                               const img = e.target as HTMLImageElement;
                               const fallback = document.createElement('span');
@@ -488,7 +434,17 @@ export default function HackerNewsClient() {
                             }}
                           />
                         ) : (
-                          <span className="text-xs">{domain.icon}</span>
+                          <span className="text-xs">
+                            {(() => {
+                              const fallbackEmojis: { [key: string]: string } = {
+                                'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
+                                'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
+                                'microsoft': '💻', 'apple': '🍎', 'amazon': '📦', 'facebook': '👥',
+                                'meta': '🌐', 'spotify': '🎵', 'openai': '🤖'
+                              };
+                              return fallbackEmojis[domain.name] || domain.name.charAt(0).toUpperCase();
+                            })()}
+                          </span>
                         )}
                         <span className="capitalize">{domain.name}</span>
                       </button>
