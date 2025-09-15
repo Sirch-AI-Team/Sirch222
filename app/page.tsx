@@ -408,9 +408,9 @@ export default function HackerNewsClient() {
               )}
               <div className="p-6 flex-1 flex flex-col">
                 {/* Domain buttons */}
-                <div className="mb-4">
+                <div className="mb-4 h-8 flex items-center">
                   <div
-                    className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide"
+                    className="flex items-center gap-2 overflow-x-auto scrollbar-hide w-full"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   >
                     {getDynamicDomains(commandSearchQuery).map((domain, index) => (
