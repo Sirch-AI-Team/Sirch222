@@ -29,6 +29,8 @@ export default function HackerNewsClient() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [popBoxAnswer, setPopBoxAnswer] = useState("")
   const [loadingPopBoxAnswer, setLoadingPopBoxAnswer] = useState(false)
+  const [streamingText, setStreamingText] = useState("")
+  const [isStreaming, setIsStreaming] = useState(false)
   const [keyboardMode, setKeyboardMode] = useState(false)
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -228,6 +230,25 @@ export default function HackerNewsClient() {
     }
   }
 
+  const streamText = (text: string) => {
+    setIsStreaming(true)
+    setStreamingText("")
+    setPopBoxAnswer("")
+
+    let index = 0
+    const interval = setInterval(() => {
+      if (index < text.length) {
+        setStreamingText(text.slice(0, index + 1))
+        index++
+      } else {
+        clearInterval(interval)
+        setIsStreaming(false)
+        setPopBoxAnswer(text)
+        setStreamingText("")
+      }
+    }, 20) // Adjust speed by changing interval (lower = faster)
+  }
+
   const fetchPopBoxAnswer = async (query: string) => {
     console.log('[PopBox] fetchPopBoxAnswer called with query:', `"${query}"`)
     console.log('[PopBox] Query length:', query.length)
@@ -235,7 +256,8 @@ export default function HackerNewsClient() {
 
     if (!query || query.trim() === "") {
       console.log('[PopBox] Query is empty, setting default message')
-      setPopBoxAnswer("Navigate through suggestions to see detailed information about each search query. Use arrow keys or hover to explore different options.")
+      const defaultMessage = "Navigate through suggestions to see detailed information about each search query. Use arrow keys or hover to explore different options."
+      streamText(defaultMessage)
       return
     }
 
@@ -257,7 +279,7 @@ export default function HackerNewsClient() {
         console.log('[PopBox] API response data:', data)
         if (data.answer) {
           console.log('[PopBox] Setting answer:', data.answer.slice(0, 100) + '...')
-          setPopBoxAnswer(data.answer)
+          streamText(data.answer)
         } else {
           console.log('[PopBox] No answer in response data')
         }
@@ -266,7 +288,8 @@ export default function HackerNewsClient() {
       }
     } catch (error) {
       console.error("Failed to fetch PopBox answer:", error)
-      setPopBoxAnswer(`Search for "${query}" across multiple sources to find the latest articles, discussions, and insights on this topic.`)
+      const errorMessage = `Search for "${query}" across multiple sources to find the latest articles, discussions, and insights on this topic.`
+      streamText(errorMessage)
     } finally {
       setLoadingPopBoxAnswer(false)
     }
@@ -301,6 +324,11 @@ export default function HackerNewsClient() {
     if (highlightedSuggestionIndex === -1) {
       return "Navigate through suggestions to see detailed information about each search query. Use arrow keys or hover to explore different options."
     }
+
+    if (isStreaming) {
+      return streamingText
+    }
+
     return loadingPopBoxAnswer ? "Generating answer..." : popBoxAnswer || "Loading information about this topic..."
   }
 
@@ -406,6 +434,8 @@ export default function HackerNewsClient() {
       return () => clearTimeout(timeoutId)
     } else if (highlightedSuggestionIndex === -1) {
       setPopBoxAnswer("")
+      setIsStreaming(false)
+      setStreamingText("")
     }
   }, [highlightedSuggestionIndex, suggestions, showCommandModal])
 
@@ -636,7 +666,7 @@ export default function HackerNewsClient() {
 
             {/* PopBox - matches main page sidebar styling */}
             <div className="relative bg-white border border-gray-100 shadow-sm w-80 h-80 p-4 flex flex-col ml-6">
-              <div className="text-sm text-gray-500 leading-tight overflow-hidden flex-1">
+              <div className="text-sm text-black leading-tight overflow-hidden flex-1">
                 {getPopBoxText()}
               </div>
 
