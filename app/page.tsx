@@ -350,6 +350,22 @@ export default function HackerNewsClient() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [showCommandModal])
 
+  // Global keyboard shortcut for Command+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === 'k') {
+        e.preventDefault()
+        setShowCommandModal(true)
+      }
+      if (e.key === 'Escape' && showCommandModal) {
+        e.preventDefault()
+        closeModalAndReset()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showCommandModal])
 
   // Fetch AI suggestions when modal opens or search query changes
   useEffect(() => {
