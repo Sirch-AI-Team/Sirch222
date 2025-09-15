@@ -35,6 +35,8 @@ export default function HackerNewsClient() {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchLoading, setSearchLoading] = useState(false)
   const [alignedSearchIndex, setAlignedSearchIndex] = useState<number | null>(null)
+  const [iframeFailed, setIframeFailed] = useState<Set<string>>(new Set())
+  const [imageFailed, setImageFailed] = useState<Set<string>>(new Set())
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -121,6 +123,17 @@ export default function HackerNewsClient() {
     }
 
     return null
+  }
+
+  const getSocialMediaImage = (url: string) => {
+    if (!url) return null
+    try {
+      const domain = new URL(url).hostname
+      // Use a service to get social media images/screenshots
+      return `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&embed=screenshot.url`
+    } catch {
+      return null
+    }
   }
 
   const [logoResults, setLogoResults] = useState<{name: string, logo_url: string, domain: string}[]>([])
@@ -733,25 +746,68 @@ export default function HackerNewsClient() {
 
       {/* MainBox */}
       <div className="fixed top-6 w-80 h-96 bg-white border border-gray-100 shadow-sm" style={{ left: "24px" }}>
-        {getCurrentWebsiteUrl() ? (
-          <iframe
-            src={getCurrentWebsiteUrl()}
-            className="w-full h-full border-0 rounded-lg"
-            title="Mobile Website View"
-            style={{
-              transform: 'scale(0.8)',
-              transformOrigin: 'top left',
-              width: '125%',
-              height: '125%'
-            }}
-          />
-        ) : (
-          <div className="p-4 h-full">
-            <div className="text-sm text-gray-500 leading-relaxed overflow-y-auto h-full break-words">
-              {getDisplayText()}
+        {(() => {
+          const currentUrl = getCurrentWebsiteUrl()
+
+          if (!currentUrl) {
+            // No URL - show text content
+            return (
+              <div className="p-4 h-full">
+                <div className="text-sm text-gray-500 leading-relaxed overflow-y-auto h-full break-words">
+                  {getDisplayText()}
+                </div>
+              </div>
+            )
+          }
+
+          // Has URL - try iframe first, then image, then text
+          if (!iframeFailed.has(currentUrl)) {
+            return (
+              <iframe
+                src={currentUrl}
+                className="w-full h-full border-0 rounded-lg"
+                title="Mobile Website View"
+                style={{
+                  transform: 'scale(0.8)',
+                  transformOrigin: 'top left',
+                  width: '125%',
+                  height: '125%'
+                }}
+                onError={() => {
+                  console.log(`[MainBox] Iframe failed for: ${currentUrl}`)
+                  setIframeFailed(prev => new Set([...prev, currentUrl]))
+                }}
+              />
+            )
+          }
+
+          // Iframe failed - try social media image
+          const socialImage = getSocialMediaImage(currentUrl)
+          if (socialImage && !imageFailed.has(currentUrl)) {
+            return (
+              <div className="p-4 h-full">
+                <img
+                  src={socialImage}
+                  alt="Website preview"
+                  className="w-full h-full object-cover rounded-lg"
+                  onError={() => {
+                    console.log(`[MainBox] Image failed for: ${currentUrl}`)
+                    setImageFailed(prev => new Set([...prev, currentUrl]))
+                  }}
+                />
+              </div>
+            )
+          }
+
+          // Both iframe and image failed - show text
+          return (
+            <div className="p-4 h-full">
+              <div className="text-sm text-gray-500 leading-relaxed overflow-y-auto h-full break-words">
+                {getDisplayText()}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
       </div>
 
       {/* Bottom left search bar and TFM button */}
