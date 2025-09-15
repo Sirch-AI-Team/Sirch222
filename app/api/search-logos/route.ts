@@ -46,6 +46,14 @@ export async function GET(request: Request) {
               const nameLower = item.name.toLowerCase()
               const domainLower = (item.domain || '').toLowerCase()
 
+              // Basic content filtering - exclude potentially inappropriate domains
+              const blockedKeywords = ['porn', 'xxx', 'adult', 'sex', 'escort', 'casino', 'gambling']
+              const hasBlockedContent = blockedKeywords.some(keyword =>
+                nameLower.includes(keyword) || domainLower.includes(keyword)
+              )
+
+              if (hasBlockedContent) return false
+
               // Only include results where name or domain contains the search term
               return nameLower.includes(searchLower) || domainLower.includes(searchLower)
             })
