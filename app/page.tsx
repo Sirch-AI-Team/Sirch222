@@ -154,7 +154,7 @@ export default function HackerNewsClient() {
 
   // Real-time logo search
   useEffect(() => {
-    if (!commandSearchQuery || commandSearchQuery.length < 2) {
+    if (!commandSearchQuery || commandSearchQuery.length < 1) {
       setLogoResults([])
       setLogoSearchQuery("")
       return
