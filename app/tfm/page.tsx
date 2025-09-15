@@ -7,6 +7,7 @@ export default function TFMLandingPage() {
   const [buyAmount, setBuyAmount] = useState('');
   const [sendAmount, setSendAmount] = useState('');
   const [balance, setBalance] = useState(1247.50);
+  const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
 
   const transactions = [
     { id: 1, type: 'received', amount: 150.00, from: 'coffee-shop-downtown', time: '2h ago', status: 'confirmed' },
@@ -38,7 +39,38 @@ export default function TFMLandingPage() {
     { id: 'buy', label: 'Buy', icon: '💰' },
     { id: 'send', label: 'Send', icon: '📤' },
     { id: 'history', label: 'History', icon: '📋' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' }
+    { id: 'about', label: 'About', icon: '❓' }
+  ];
+
+  const faqs = [
+    {
+      question: "What is TFM?",
+      answer: "TFM stands for Totally Fake Money. It's a digital currency that embraces its artificial nature while providing real utility. Unlike other cryptocurrencies that pretend to be revolutionary, we're honest about being fake."
+    },
+    {
+      question: "Is this real money?",
+      answer: "No, it's totally fake money. But then again, most money these days is just numbers in computers anyway. At least we're honest about it."
+    },
+    {
+      question: "How do I get TFM?",
+      answer: "You can buy TFM at a 1:1 ratio with USD because why complicate things? Just enter an amount in the Buy tab and click purchase. It's that simple."
+    },
+    {
+      question: "Can I send TFM to others?",
+      answer: "Absolutely! Use the Send tab to transfer TFM to other users. Just enter their username or email and the amount. Your fake money will be fake-transferred instantly."
+    },
+    {
+      question: "What can I do with TFM?",
+      answer: "You can buy coffee, pizza, groceries, or anything else that accepts totally fake money. Which is surprisingly more places than you'd think."
+    },
+    {
+      question: "Is TFM secure?",
+      answer: "It's as secure as any other fake digital currency. We use cutting-edge fake encryption and fake blockchain technology to ensure your fake money stays fake-safe."
+    },
+    {
+      question: "Why should I use TFM?",
+      answer: "Because it's honest. No promises of getting rich, no complex white papers, no environmental damage. Just simple, fake money that works."
+    }
   ];
 
   return (
@@ -189,52 +221,36 @@ export default function TFMLandingPage() {
             </div>
           )}
 
-          {activeTab === 'settings' && (
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-700">Notifications</span>
-                  <input type="checkbox" defaultChecked className="text-orange-600 focus:ring-orange-500" />
+          {activeTab === 'about' && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Frequently Asked Questions</h3>
+              {faqs.map((faq, index) => (
+                <div key={index} className="border-b border-gray-100 last:border-b-0">
+                  <button
+                    onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
+                    className="w-full text-left py-3 hover:text-orange-600 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">{faq.question}</span>
+                      <span className="text-gray-400 ml-2">
+                        {expandedFAQ === index ? '−' : '+'}
+                      </span>
+                    </div>
+                  </button>
+                  {expandedFAQ === index && (
+                    <div className="pb-3 -mt-1">
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-700">Auto-backup</span>
-                  <input type="checkbox" defaultChecked className="text-orange-600 focus:ring-orange-500" />
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-700">Dark mode</span>
-                  <input type="checkbox" className="text-orange-600 focus:ring-orange-500" />
-                </div>
-              </div>
-              <hr className="border-gray-200" />
-              <div className="space-y-2">
-                <button className="w-full text-left text-sm text-gray-700 py-2 hover:text-orange-600 transition-colors">
-                  Export transaction history
-                </button>
-                <button className="w-full text-left text-sm text-gray-700 py-2 hover:text-orange-600 transition-colors">
-                  View terms of service
-                </button>
-                <button className="w-full text-left text-sm text-red-600 py-2 hover:text-red-700 transition-colors">
-                  Sign out
-                </button>
-              </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Tagline */}
-      <div className="text-center mt-6 mb-4">
-        <p className="text-xl text-gray-600 mb-2">Totally Fake Money</p>
-        <p className="text-sm text-orange-600 uppercase tracking-wide font-medium">
-          Digital money that makes sense
-        </p>
-      </div>
-
-      {/* Footer */}
-      <div className="mt-4 text-center text-xs text-gray-500">
-        <p>Yeah, it's fake money. But so is everything else these days.</p>
-        <p className="mt-1">TFM • Real utility, fake complexity</p>
-      </div>
     </div>
   );
 }
