@@ -136,14 +136,14 @@ export default function HackerNewsClient() {
   const getDynamicDomains = (query: string) => {
     console.log(`[getDynamicDomains] query: "${query}", logoSearchQuery: "${logoSearchQuery}", logoResults:`, logoResults)
 
-    // Only show logo search results when available and matching current query
-    if (logoResults.length > 0 && query === logoSearchQuery) {
+    // Show logo search results when available - keep previous results visible during new search
+    if (logoResults.length > 0) {
       const domains = logoResults.map(result => ({
         name: result.name,
         icon: result.logo_url,
         domain: result.domain
       }))
-      console.log(`[getDynamicDomains] Returning ${domains.length} logo results:`, domains)
+      console.log(`[getDynamicDomains] Returning ${domains.length} logo results (keeping previous during search):`, domains)
       return domains
     }
 
