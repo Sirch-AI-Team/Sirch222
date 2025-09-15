@@ -23,14 +23,13 @@ export default function HackerNewsClient() {
   const [commandSearchQuery, setCommandSearchQuery] = useState("")
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1)
   const [highlightedDomainIndex, setHighlightedDomainIndex] = useState(-1)
-  const [suggestionCursorY, setSuggestionCursorY] = useState(0)
-  const [modalCursorY, setModalCursorY] = useState(0)
   const [suggestions, setSuggestions] = useState<string[]>(['AI developments', 'React best practices', 'Startup funding', 'Open source projects'])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [popBoxAnswer, setPopBoxAnswer] = useState("")
   const [loadingPopBoxAnswer, setLoadingPopBoxAnswer] = useState(false)
   const [streamingText, setStreamingText] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
+  const [streamingIntervalRef, setStreamingIntervalRef] = useState<NodeJS.Timeout | null>(null)
   const [keyboardMode, setKeyboardMode] = useState(false)
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -230,10 +229,22 @@ export default function HackerNewsClient() {
     }
   }
 
+  const clearStreaming = () => {
+    if (streamingIntervalRef) {
+      clearInterval(streamingIntervalRef)
+      setStreamingIntervalRef(null)
+    }
+    setIsStreaming(false)
+    setStreamingText("")
+  }
+
   const streamText = (text: string) => {
+    // Clear any existing streaming
+    clearStreaming()
+
+    setPopBoxAnswer("")
     setIsStreaming(true)
     setStreamingText("")
-    setPopBoxAnswer("")
 
     let index = 0
     const interval = setInterval(() => {
@@ -242,17 +253,23 @@ export default function HackerNewsClient() {
         index++
       } else {
         clearInterval(interval)
+        setStreamingIntervalRef(null)
         setIsStreaming(false)
         setPopBoxAnswer(text)
         setStreamingText("")
       }
-    }, 20) // Adjust speed by changing interval (lower = faster)
+    }, 20)
+
+    setStreamingIntervalRef(interval)
   }
 
   const fetchPopBoxAnswer = async (query: string) => {
     console.log('[PopBox] fetchPopBoxAnswer called with query:', `"${query}"`)
     console.log('[PopBox] Query length:', query.length)
     console.log('[PopBox] Query after trim:', `"${query.trim()}"`)
+
+    // Clear any existing streaming immediately
+    clearStreaming()
 
     if (!query || query.trim() === "") {
       console.log('[PopBox] Query is empty, setting default message')
@@ -263,6 +280,7 @@ export default function HackerNewsClient() {
 
     console.log('[PopBox] Starting API call for query:', query)
     setLoadingPopBoxAnswer(true)
+    setPopBoxAnswer("")  // Clear previous answer immediately
     try {
       const response = await fetch("/api/popbox-answer", {
         method: "POST",
@@ -329,7 +347,11 @@ export default function HackerNewsClient() {
       return streamingText
     }
 
-    return loadingPopBoxAnswer ? "Generating answer..." : popBoxAnswer || "Loading information about this topic..."
+    if (loadingPopBoxAnswer) {
+      return ""  // Show nothing while loading, streaming will handle the display
+    }
+
+    return popBoxAnswer || ""
   }
 
   useEffect(() => {
@@ -378,9 +400,7 @@ export default function HackerNewsClient() {
           const relativeY = e.clientY - modalRect.top
           const searchInputBottom = 150 // Bottom of search input area
           if (relativeY > searchInputBottom) {
-            setModalCursorY(relativeY)
-          } else {
-            setModalCursorY(searchInputBottom + 10) // Default position just below search
+            // Cursor positioning removed - using keyboard only
           }
         }
       } else if (e.clientX > 400) { // Only track when mouse is in content area
@@ -433,11 +453,19 @@ export default function HackerNewsClient() {
 
       return () => clearTimeout(timeoutId)
     } else if (highlightedSuggestionIndex === -1) {
+      clearStreaming()
       setPopBoxAnswer("")
-      setIsStreaming(false)
-      setStreamingText("")
     }
   }, [highlightedSuggestionIndex, suggestions, showCommandModal])
+
+  // Cleanup streaming on component unmount
+  useEffect(() => {
+    return () => {
+      if (streamingIntervalRef) {
+        clearInterval(streamingIntervalRef)
+      }
+    }
+  }, [streamingIntervalRef])
 
   if (loading) {
     return (
@@ -461,7 +489,7 @@ export default function HackerNewsClient() {
                 <div
                   className="absolute w-4 h-px bg-black z-10"
                   style={{
-                    top: `${modalCursorY}px`,
+                    top: '150px', // Fixed position
                     right: "0px",
                   }}
                 />
@@ -654,7 +682,9 @@ export default function HackerNewsClient() {
                           highlightedSuggestionIndex === index ? "text-orange-500" : "text-black"
                         }`}
                       >
-                        <span className="text-gray-400 mr-3 w-4 text-right flex-shrink-0">{index + 1}</span>
+                        <span className="mr-3 w-4 text-right flex-shrink-0">
+                          {highlightedSuggestionIndex === index ? "•" : " "}
+                        </span>
                         <span className="truncate">{suggestion}</span>
                       </button>
                     ))
