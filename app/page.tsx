@@ -348,7 +348,7 @@ export default function HackerNewsClient() {
     }
 
     if (loadingPopBoxAnswer) {
-      return ""  // Show nothing while loading, streaming will handle the display
+      return "LOADING_DOT"  // Special marker for loading state
     }
 
     return popBoxAnswer || ""
@@ -691,7 +691,11 @@ export default function HackerNewsClient() {
             {/* PopBox - matches main page sidebar styling */}
             <div className="relative bg-white border border-gray-100 shadow-sm w-80 h-80 p-4 flex flex-col ml-6">
               <div className="text-sm text-black leading-tight overflow-hidden flex-1">
-                {getPopBoxText()}
+                {getPopBoxText() === "LOADING_DOT" ? (
+                  <span className="animate-pulse">•</span>
+                ) : (
+                  getPopBoxText()
+                )}
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-100">
