@@ -436,7 +436,7 @@ export default function HackerNewsClient() {
                   }}
                 />
               )}
-              <div className="pt-1 pb-3 px-3 flex-1 flex flex-col">
+              <div className="py-1.5 px-3 flex-1 flex flex-col">
                 {/* Domain buttons */}
                 <div className="relative mb-2 h-8">
                   {getDynamicDomains(commandSearchQuery).length > 0 && (
