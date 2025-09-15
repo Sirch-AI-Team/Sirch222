@@ -436,9 +436,9 @@ export default function HackerNewsClient() {
                   }}
                 />
               )}
-              <div className="p-6 flex-1 flex flex-col">
+              <div className="p-3 flex-1 flex flex-col">
                 {/* Domain buttons */}
-                <div className="relative mb-4 h-8">
+                <div className="relative mb-2 h-8">
                   {getDynamicDomains(commandSearchQuery).length > 0 && (
                     <div
                       className="absolute top-0 left-0 right-0 flex items-center gap-2 overflow-x-auto scrollbar-hide"
@@ -493,7 +493,7 @@ export default function HackerNewsClient() {
                 </div>
 
                 {/* Search input */}
-                <div className="mb-6 relative">
+                <div className="mb-3 relative">
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                       <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
