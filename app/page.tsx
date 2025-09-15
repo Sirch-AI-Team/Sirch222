@@ -775,7 +775,7 @@ export default function HackerNewsClient() {
                 }}
                 onError={() => {
                   console.log(`[MainBox] Iframe failed for: ${currentUrl}`)
-                  setIframeFailed(prev => new Set([...prev, currentUrl]))
+                  setIframeFailed(prev => new Set(Array.from(prev).concat(currentUrl)))
                 }}
               />
             )
@@ -792,7 +792,7 @@ export default function HackerNewsClient() {
                   className="w-full h-full object-cover rounded-lg"
                   onError={() => {
                     console.log(`[MainBox] Image failed for: ${currentUrl}`)
-                    setImageFailed(prev => new Set([...prev, currentUrl]))
+                    setImageFailed(prev => new Set(Array.from(prev).concat(currentUrl)))
                   }}
                 />
               </div>
