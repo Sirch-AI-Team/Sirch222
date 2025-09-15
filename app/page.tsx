@@ -135,45 +135,26 @@ export default function HackerNewsClient() {
 
   const getDynamicDomains = (query: string) => {
     console.log(`[getDynamicDomains] query: "${query}", logoSearchQuery: "${logoSearchQuery}", logoResults:`, logoResults)
-    
-    // Use real-time logo search results when available  
+
+    // Only show logo search results when available and matching current query
     if (logoResults.length > 0 && query === logoSearchQuery) {
       const domains = logoResults.map(result => ({
-        name: result.name.replace(/^(the\s+)?/i, ''),
+        name: result.name,
         icon: result.logo_url,
         domain: result.domain
       }))
       console.log(`[getDynamicDomains] Returning ${domains.length} logo results:`, domains)
-      return domains.slice(0, 10) // Show top 10 from logo.dev
+      return domains
     }
 
-    // Fallback defaults when no search query or no results
-    const fallbackEmojis: { [key: string]: string } = {
-      'github': '🐙', 'reddit': '🤖', 'twitter': '🐦', 'medium': '📝',
-      'youtube': '📺', 'stackoverflow': '💬', 'netflix': '🎬', 'google': '🌐',
-      'microsoft': '💻', 'apple': '🍎'
-    }
-
-    const defaultDomains = [
-      { name: "github", icon: fallbackEmojis["github"], domain: "github.com" },
-      { name: "reddit", icon: fallbackEmojis["reddit"], domain: "reddit.com" },
-      { name: "twitter", icon: fallbackEmojis["twitter"], domain: "twitter.com" },
-      { name: "medium", icon: fallbackEmojis["medium"], domain: "medium.com" },
-      { name: "youtube", icon: fallbackEmojis["youtube"], domain: "youtube.com" },
-      { name: "google", icon: fallbackEmojis["google"], domain: "google.com" },
-      { name: "netflix", icon: fallbackEmojis["netflix"], domain: "netflix.com" },
-      { name: "microsoft", icon: fallbackEmojis["microsoft"], domain: "microsoft.com" },
-      { name: "stackoverflow", icon: fallbackEmojis["stackoverflow"], domain: "stackoverflow.com" },
-      { name: "apple", icon: fallbackEmojis["apple"], domain: "apple.com" }
-    ]
-
-    console.log(`[getDynamicDomains] Returning default domains`)
-    return defaultDomains
+    // Return empty array when no results - no placeholder domains
+    console.log(`[getDynamicDomains] No logo results, returning empty array`)
+    return []
   }
 
   // Real-time logo search
   useEffect(() => {
-    if (!commandSearchQuery || commandSearchQuery.length < 1) {
+    if (!commandSearchQuery || commandSearchQuery.length < 2) {
       setLogoResults([])
       setLogoSearchQuery("")
       return
