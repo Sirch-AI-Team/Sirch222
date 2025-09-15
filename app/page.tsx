@@ -408,11 +408,12 @@ export default function HackerNewsClient() {
               )}
               <div className="p-6 flex-1 flex flex-col">
                 {/* Domain buttons */}
-                <div className="mb-4 h-8 flex items-center">
-                  <div
-                    className="flex items-center gap-2 overflow-x-auto scrollbar-hide w-full"
-                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                  >
+                <div className="relative mb-4 h-8">
+                  {getDynamicDomains(commandSearchQuery).length > 0 && (
+                    <div
+                      className="absolute top-0 left-0 right-0 flex items-center gap-2 overflow-x-auto scrollbar-hide"
+                      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                    >
                     {getDynamicDomains(commandSearchQuery).map((domain, index) => (
                       <button
                         key={domain.name}
@@ -457,7 +458,8 @@ export default function HackerNewsClient() {
                         <span className="capitalize">{domain.name}</span>
                       </button>
                     ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Search input */}
