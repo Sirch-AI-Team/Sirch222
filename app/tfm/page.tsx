@@ -19,9 +19,10 @@ export default function TFMLandingPage() {
 
   const handleBuy = () => {
     if (buyAmount && parseFloat(buyAmount) > 0) {
-      setBalance(prev => prev + parseFloat(buyAmount));
+      const tfmReceived = parseFloat(buyAmount) * 10; // 90% discount = 10x multiplier
+      setBalance(prev => prev + tfmReceived);
       setBuyAmount('');
-      alert(`Successfully purchased ${buyAmount} TFM`);
+      alert(`Successfully purchased ${tfmReceived} TFM for $${buyAmount}!`);
     }
   };
 
@@ -70,6 +71,14 @@ export default function TFMLandingPage() {
     {
       question: "Why should I use TFM?",
       answer: "Because it's honest. No promises of getting rich, no complex white papers, no environmental damage. Just simple, fake money that works."
+    },
+    {
+      question: "How does TFM gain value?",
+      answer: "TFM is the only currency accepted for purchasing ads on this search engine. As our search engine grows and more businesses want to advertise, demand for TFM increases, securing its value. It's fake money with real utility."
+    },
+    {
+      question: "Is there a discount available?",
+      answer: "Yes! During our inception phase, you can purchase TFM for 90% off the regular price. This early adopter discount won't last forever, so get your totally fake money while it's cheap."
     }
   ];
 
@@ -138,7 +147,7 @@ export default function TFMLandingPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-mono"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  1 USD = 1 TFM (because why complicate things?)
+                  1 USD = 10 TFM (90% off inception discount!)
                 </p>
               </div>
               <button
