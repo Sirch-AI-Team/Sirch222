@@ -438,7 +438,7 @@ export default function HackerNewsClient() {
               )}
               <div className="py-1.5 px-3 flex-1 flex flex-col">
                 {/* Domain buttons */}
-                <div className="relative mb-2 h-8">
+                <div className="relative mt-0.5 mb-2 h-8">
                   {getDynamicDomains(commandSearchQuery).length > 0 && (
                     <div
                       className="absolute top-0 left-0 right-0 flex items-center gap-2 overflow-x-auto scrollbar-hide"
