@@ -229,11 +229,17 @@ export default function HackerNewsClient() {
   }
 
   const fetchPopBoxAnswer = async (query: string) => {
+    console.log('[PopBox] fetchPopBoxAnswer called with query:', `"${query}"`)
+    console.log('[PopBox] Query length:', query.length)
+    console.log('[PopBox] Query after trim:', `"${query.trim()}"`)
+
     if (!query || query.trim() === "") {
+      console.log('[PopBox] Query is empty, setting default message')
       setPopBoxAnswer("Navigate through suggestions to see detailed information about each search query. Use arrow keys or hover to explore different options.")
       return
     }
 
+    console.log('[PopBox] Starting API call for query:', query)
     setLoadingPopBoxAnswer(true)
     try {
       const response = await fetch("/api/popbox-answer", {
@@ -244,11 +250,19 @@ export default function HackerNewsClient() {
         body: JSON.stringify({ query }),
       })
 
+      console.log('[PopBox] API response status:', response.status)
+
       if (response.ok) {
         const data = await response.json()
+        console.log('[PopBox] API response data:', data)
         if (data.answer) {
+          console.log('[PopBox] Setting answer:', data.answer.slice(0, 100) + '...')
           setPopBoxAnswer(data.answer)
+        } else {
+          console.log('[PopBox] No answer in response data')
         }
+      } else {
+        console.log('[PopBox] API response not ok:', response.status)
       }
     } catch (error) {
       console.error("Failed to fetch PopBox answer:", error)
