@@ -696,10 +696,9 @@ export default function HackerNewsClient() {
             <div className="relative bg-white border border-gray-100 shadow-sm w-80 h-80 p-4 flex flex-col ml-6">
               <div className="text-sm text-black leading-tight overflow-hidden flex-1">
                 {getPopBoxText() === "LOADING_DOT" ? (
-                  <div className="flex items-center">
-                    <span className="animate-pulse text-lg">•</span>
-                    <span className="ml-2 text-xs text-gray-400">loading...</span>
-                  </div>
+                  <span className="text-xl" style={{
+                    animation: 'blink 1s infinite',
+                  }}>•</span>
                 ) : (
                   getPopBoxText()
                 )}
