@@ -281,6 +281,9 @@ export default function HackerNewsClient() {
     console.log('[PopBox] Starting API call for query:', query)
     setLoadingPopBoxAnswer(true)
     setPopBoxAnswer("")  // Clear previous answer immediately
+
+    // Add artificial delay to make loading state visible for debugging
+    await new Promise(resolve => setTimeout(resolve, 1000))
     try {
       const response = await fetch("/api/popbox-answer", {
         method: "POST",
@@ -348,6 +351,7 @@ export default function HackerNewsClient() {
     }
 
     if (loadingPopBoxAnswer) {
+      console.log('[PopBox] Currently loading - should show dot')
       return "LOADING_DOT"  // Special marker for loading state
     }
 
@@ -692,7 +696,10 @@ export default function HackerNewsClient() {
             <div className="relative bg-white border border-gray-100 shadow-sm w-80 h-80 p-4 flex flex-col ml-6">
               <div className="text-sm text-black leading-tight overflow-hidden flex-1">
                 {getPopBoxText() === "LOADING_DOT" ? (
-                  <span className="animate-pulse">•</span>
+                  <div className="flex items-center">
+                    <span className="animate-pulse text-lg">•</span>
+                    <span className="ml-2 text-xs text-gray-400">loading...</span>
+                  </div>
                 ) : (
                   getPopBoxText()
                 )}
