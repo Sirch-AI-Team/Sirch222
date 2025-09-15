@@ -510,7 +510,6 @@ export default function HackerNewsClient() {
                             ? "bg-orange-50 border-orange-200 text-orange-600"
                             : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                         }`}
-                        onMouseEnter={() => setHighlightedDomainIndex(index)}
                         onClick={() => {
                           console.log(`[Click] Navigating to ${domain.domain}`)
                           closeModalAndReset()
@@ -673,11 +672,6 @@ export default function HackerNewsClient() {
                           closeModalAndReset()
                           performSearch(suggestion)
                         }}
-                        onMouseEnter={() => {
-                          if (!keyboardMode) {
-                            setHighlightedSuggestionIndex(index)
-                          }
-                        }}
                         className={`w-full flex items-center px-4 py-3 text-sm text-left hover:text-orange-500 rounded-lg transition-colors border-b border-gray-50 last:border-0 ${
                           highlightedSuggestionIndex === index ? "text-orange-500" : "text-black"
                         }`}
@@ -762,7 +756,6 @@ export default function HackerNewsClient() {
               <div
                 key={index}
                 className="py-3 border-b border-gray-50 last:border-0"
-                onMouseEnter={() => setAlignedSearchIndex(index)}
               >
                 <div className="flex gap-3">
                   <span
@@ -806,7 +799,6 @@ export default function HackerNewsClient() {
             <div
               key={story.id}
               className="py-3 border-b border-gray-50 last:border-0"
-              onMouseEnter={() => setAlignedStoryIndex(index)}
             >
               <div className="flex gap-3">
                 <span
