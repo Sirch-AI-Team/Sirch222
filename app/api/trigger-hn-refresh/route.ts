@@ -36,9 +36,11 @@ export async function GET() {
   } catch (error) {
     console.error("[Cron] HackerNews refresh failed:", error)
 
+    const errorMessage = error instanceof Error ? error.message : String(error)
+
     return Response.json({
       success: false,
-      error: error.message,
+      error: errorMessage,
       timestamp: new Date().toISOString()
     }, { status: 500 })
   }
