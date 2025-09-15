@@ -4,7 +4,7 @@ export async function GET() {
   try {
     console.log("[Cron] Triggering HackerNews refresh...")
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://liobdrwdjkznvqigglxw.supabase.co'
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !supabaseServiceKey) {
