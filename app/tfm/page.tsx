@@ -83,7 +83,7 @@ export default function TFMLandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 font-sans pt-20 pb-20">
       {/* Back to main button */}
       <div className="fixed top-6 left-6">
         <a
