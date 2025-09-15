@@ -487,7 +487,7 @@ export default function HackerNewsClient() {
                   </div>
                   <input
                     type="text"
-                    placeholder="Type a command or search..."
+                    placeholder="Human centric search, powered by AI"
                     value={commandSearchQuery}
                     onChange={(e) => {
                       const newValue = e.target.value
@@ -562,6 +562,19 @@ export default function HackerNewsClient() {
                           const nextIndex = prev > 0 ? prev - 1 : domains.length - 1
                           return nextIndex
                         })
+                      }
+                      if (e.key === 'Tab') {
+                        e.preventDefault()
+
+                        // If a suggestion is highlighted, move it to search input
+                        if (highlightedSuggestionIndex >= 0 && suggestions[highlightedSuggestionIndex]) {
+                          setCommandSearchQuery(suggestions[highlightedSuggestionIndex])
+                          setHighlightedSuggestionIndex(-1)
+                        }
+                        // If user is typing a query (no suggestion highlighted), trigger PopBox answer
+                        else if (commandSearchQuery.trim()) {
+                          fetchPopBoxAnswer(commandSearchQuery.trim())
+                        }
                       }
                     }}
                   />
