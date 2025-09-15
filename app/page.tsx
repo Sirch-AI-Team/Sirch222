@@ -724,9 +724,9 @@ export default function HackerNewsClient() {
         </div>
       </div>
 
-      {/* Bottom left search bar */}
-      <div className="fixed bottom-6 left-6 w-80">
-        <div className="relative">
+      {/* Bottom left search bar and TFM button */}
+      <div className="fixed bottom-6 left-6 flex items-center gap-3">
+        <div className="relative w-80">
           <input
             type="text"
             placeholder="Sirch and you shall find"
@@ -745,6 +745,14 @@ export default function HackerNewsClient() {
             ⌘K
           </div>
         </div>
+
+        {/* TFM Button */}
+        <a
+          href="/tfm"
+          className="px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          TFM
+        </a>
       </div>
 
       {/* Main content */}
