@@ -725,8 +725,8 @@ export default function HackerNewsClient() {
       </div>
 
       {/* Bottom left search bar and TFM button */}
-      <div className="fixed bottom-6 left-6 flex items-center gap-3">
-        <div className="relative w-80">
+      <div className="fixed bottom-6 left-6 w-80 flex items-center gap-3">
+        <div className="relative flex-1">
           <input
             type="text"
             placeholder="Sirch and you shall find"
@@ -749,14 +749,14 @@ export default function HackerNewsClient() {
         {/* TFM Button */}
         <a
           href="/tfm"
-          className="px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="px-3 py-3 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
         >
           TFM
         </a>
       </div>
 
       {/* Main content */}
-      <main className="py-6" style={{ paddingLeft: "460px" }}>
+      <main className="py-6" style={{ paddingLeft: "432px" }}>
         {searchQuery ? (
           // Search Results
           searchLoading ? (
