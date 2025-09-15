@@ -579,8 +579,10 @@ export default function HackerNewsClient() {
                       }
                       if (e.key === 'Tab') {
                         e.preventDefault()
+                        const currentInputValue = (e.target as HTMLInputElement).value
                         console.log('[Tab] Tab key pressed, highlightedSuggestionIndex:', highlightedSuggestionIndex)
-                        console.log('[Tab] Current query:', commandSearchQuery)
+                        console.log('[Tab] Current query (state):', commandSearchQuery)
+                        console.log('[Tab] Current query (input):', currentInputValue)
                         console.log('[Tab] Available suggestions:', suggestions)
 
                         // If a suggestion is highlighted, move it to search input
@@ -590,9 +592,9 @@ export default function HackerNewsClient() {
                           setHighlightedSuggestionIndex(-1)
                         }
                         // If user is typing a query (no suggestion highlighted), trigger PopBox answer
-                        else if (commandSearchQuery.trim()) {
-                          console.log('[Tab] Triggering PopBox answer for:', commandSearchQuery.trim())
-                          fetchPopBoxAnswer(commandSearchQuery.trim())
+                        else if (currentInputValue.trim()) {
+                          console.log('[Tab] Triggering PopBox answer for:', currentInputValue.trim())
+                          fetchPopBoxAnswer(currentInputValue.trim())
                         }
                       }
                     }}
