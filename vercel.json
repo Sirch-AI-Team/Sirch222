@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/trigger-hn-refresh",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}
