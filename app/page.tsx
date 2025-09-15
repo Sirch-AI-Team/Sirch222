@@ -597,14 +597,6 @@ export default function HackerNewsClient() {
                   )}
                 </div>
 
-                {/* Footer */}
-                <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
-                  <div className="text-xs text-gray-400">PopSearch</div>
-                  <div className="text-xs text-gray-400">
-                    <kbd className="px-2 py-1 bg-gray-100 rounded text-gray-600">↵</kbd> to search •{" "}
-                    <kbd className="px-2 py-1 bg-gray-100 rounded text-gray-600">esc</kbd> to close
-                  </div>
-                </div>
               </div>
             </div>
 
