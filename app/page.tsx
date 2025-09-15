@@ -756,7 +756,7 @@ export default function HackerNewsClient() {
       </div>
 
       {/* Main content */}
-      <main className="py-6" style={{ paddingLeft: "432px" }}>
+      <main className="py-6" style={{ paddingLeft: "460px" }}>
         {searchQuery ? (
           // Search Results
           searchLoading ? (
