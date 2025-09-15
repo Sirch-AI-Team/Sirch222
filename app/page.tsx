@@ -35,6 +35,7 @@ export default function HackerNewsClient() {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchLoading, setSearchLoading] = useState(false)
   const [alignedSearchIndex, setAlignedSearchIndex] = useState<number | null>(null)
+  const [showMobileView, setShowMobileView] = useState(false)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -107,6 +108,20 @@ export default function HackerNewsClient() {
     }
 
     return "Real-time HackerNews stories with AI-generated summaries. Updated every 10 minutes from the top 100 stories."
+  }
+
+  const getCurrentWebsiteUrl = () => {
+    // For search results
+    if (searchQuery && alignedSearchIndex !== null && searchResults[alignedSearchIndex]?.url) {
+      return searchResults[alignedSearchIndex].url
+    }
+
+    // For HackerNews stories
+    if (alignedStoryIndex !== null && stories[alignedStoryIndex]?.url) {
+      return stories[alignedStoryIndex].url
+    }
+
+    return null
   }
 
   const [logoResults, setLogoResults] = useState<{name: string, logo_url: string, domain: string}[]>([])
@@ -416,12 +431,19 @@ export default function HackerNewsClient() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [showCommandModal])
 
-  // Global keyboard shortcut for Command+K
+  // Global keyboard shortcut for Command+K and Command+M
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === 'k') {
         e.preventDefault()
         setShowCommandModal(true)
+      }
+      if (e.metaKey && e.key === 'm') {
+        e.preventDefault()
+        const currentUrl = getCurrentWebsiteUrl()
+        if (currentUrl) {
+          setShowMobileView(!showMobileView)
+        }
       }
       if (e.key === 'Escape' && showCommandModal) {
         e.preventDefault()
@@ -431,7 +453,7 @@ export default function HackerNewsClient() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showCommandModal])
+  }, [showCommandModal, showMobileView])
 
   // Fetch AI suggestions when modal opens or search query changes
   useEffect(() => {
@@ -718,10 +740,36 @@ export default function HackerNewsClient() {
       <div className="fixed w-4 h-px bg-black" style={{ top: `${cursorY}px`, left: "400px" }} />
 
       {/* MainBox */}
-      <div className="fixed top-6 w-80 h-96 bg-white border border-gray-100 shadow-sm p-4" style={{ left: "24px" }}>
-        <div className="text-sm text-gray-500 leading-relaxed overflow-y-auto h-full break-words">
-          {getDisplayText()}
-        </div>
+      <div className="fixed top-6 w-80 h-96 bg-white border border-gray-100 shadow-sm" style={{ left: "24px" }}>
+        {showMobileView && getCurrentWebsiteUrl() ? (
+          <div className="relative h-full">
+            <iframe
+              src={getCurrentWebsiteUrl()}
+              className="w-full h-full border-0 rounded-lg"
+              title="Mobile Website View"
+              style={{
+                transform: 'scale(0.8)',
+                transformOrigin: 'top left',
+                width: '125%',
+                height: '125%'
+              }}
+            />
+            <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
+              ⌘M to toggle
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 h-full">
+            <div className="text-sm text-gray-500 leading-relaxed overflow-y-auto h-full break-words">
+              {getDisplayText()}
+              {getCurrentWebsiteUrl() && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-400">Press ⌘M to view mobile site</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom left search bar and TFM button */}
