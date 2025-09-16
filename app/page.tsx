@@ -763,14 +763,6 @@ export default function HackerNewsClient() {
 
           // Has URL - try iframe first, then image, then text
           if (!iframeFailed.has(currentUrl)) {
-            // Set a timeout to fallback if iframe doesn't load
-            setTimeout(() => {
-              if (!iframeLoaded.has(currentUrl)) {
-                console.log(`[MainBox] Iframe timeout for: ${currentUrl}`)
-                setIframeFailed(prev => new Set(Array.from(prev).concat(currentUrl)))
-              }
-            }, 5000) // 5 second timeout
-
             return (
               <iframe
                 src={currentUrl}
@@ -783,7 +775,7 @@ export default function HackerNewsClient() {
                   height: '125%'
                 }}
                 onLoad={() => {
-                  console.log(`[MainBox] Iframe loaded for: ${currentUrl}`)
+                  console.log(`[MainBox] Iframe loaded successfully for: ${currentUrl}`)
                   setIframeLoaded(prev => new Set(Array.from(prev).concat(currentUrl)))
                 }}
                 onError={() => {
