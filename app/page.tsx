@@ -37,6 +37,7 @@ export default function HackerNewsClient() {
   const [alignedSearchIndex, setAlignedSearchIndex] = useState<number | null>(null)
   const [iframeFailed, setIframeFailed] = useState<Set<string>>(new Set())
   const [imageFailed, setImageFailed] = useState<Set<string>>(new Set())
+  const [iframeLoaded, setIframeLoaded] = useState<Set<string>>(new Set())
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -762,6 +763,14 @@ export default function HackerNewsClient() {
 
           // Has URL - try iframe first, then image, then text
           if (!iframeFailed.has(currentUrl)) {
+            // Set a timeout to fallback if iframe doesn't load
+            setTimeout(() => {
+              if (!iframeLoaded.has(currentUrl)) {
+                console.log(`[MainBox] Iframe timeout for: ${currentUrl}`)
+                setIframeFailed(prev => new Set(Array.from(prev).concat(currentUrl)))
+              }
+            }, 5000) // 5 second timeout
+
             return (
               <iframe
                 src={currentUrl}
@@ -773,8 +782,12 @@ export default function HackerNewsClient() {
                   width: '125%',
                   height: '125%'
                 }}
+                onLoad={() => {
+                  console.log(`[MainBox] Iframe loaded for: ${currentUrl}`)
+                  setIframeLoaded(prev => new Set(Array.from(prev).concat(currentUrl)))
+                }}
                 onError={() => {
-                  console.log(`[MainBox] Iframe failed for: ${currentUrl}`)
+                  console.log(`[MainBox] Iframe error for: ${currentUrl}`)
                   setIframeFailed(prev => new Set(Array.from(prev).concat(currentUrl)))
                 }}
               />
