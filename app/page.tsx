@@ -798,11 +798,11 @@ export default function HackerNewsClient() {
           const socialImage = getSocialMediaImage(currentUrl)
           if (socialImage && !imageFailed.has(currentUrl)) {
             return (
-              <div className="p-4 h-full">
+              <div className="h-full bg-gray-200 flex items-center justify-center">
                 <img
                   src={socialImage}
                   alt="Website preview"
-                  className="w-full h-full object-cover rounded-lg"
+                  className="max-w-full max-h-full object-contain rounded"
                   onError={() => {
                     console.log(`[MainBox] Image failed for: ${currentUrl}`)
                     setImageFailed(prev => new Set(Array.from(prev).concat(currentUrl)))
