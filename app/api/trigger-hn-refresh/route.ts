@@ -1,12 +1,12 @@
 export const dynamic = "force-dynamic"
 
-const SUPABASE_PROJECT_URL = 'https://updxqpewgwdeetrdlrfs.supabase.co'
+const SUPABASE_PROJECT_URL = 'https://liobdrwdjkznvqigglxw.supabase.co'
 const MAX_RETRIES = 3
 const RETRY_DELAY = 5000
 
 async function checkLastUpdate() {
   try {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/stories?select=updated_at&order=updated_at.desc&limit=1`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/hack?select=updated_at&order=updated_at.desc&limit=1`, {
       headers: {
         'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
         'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`

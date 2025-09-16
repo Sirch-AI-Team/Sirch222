@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"
 
-const SUPABASE_PROJECT_URL = 'https://updxqpewgwdeetrdlrfs.supabase.co'
+const SUPABASE_PROJECT_URL = 'https://liobdrwdjkznvqigglxw.supabase.co'
 
 export async function GET() {
   try {
