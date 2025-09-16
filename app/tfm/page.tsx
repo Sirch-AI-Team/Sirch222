@@ -51,7 +51,12 @@ export default function TFMLandingPage() {
   const loadUserData = async (user: User) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
+      if (!session?.access_token) {
+        console.error('No session or access token available')
+        return
+      }
+
+      console.log('Loading TFM data for user:', user.email)
 
       // Load balance
       const balanceResponse = await fetch('/api/tfm/balance', {
@@ -60,9 +65,15 @@ export default function TFMLandingPage() {
         }
       })
 
+      console.log('Balance response status:', balanceResponse.status)
+
       if (balanceResponse.ok) {
         const balanceData = await balanceResponse.json()
+        console.log('Balance data:', balanceData)
         setBalance(parseFloat(balanceData.balance?.balance || 0))
+      } else {
+        const errorData = await balanceResponse.json()
+        console.error('Balance API error:', errorData)
       }
 
       // Load transactions
@@ -72,9 +83,15 @@ export default function TFMLandingPage() {
         }
       })
 
+      console.log('Transactions response status:', transactionsResponse.status)
+
       if (transactionsResponse.ok) {
         const transactionsData = await transactionsResponse.json()
+        console.log('Transactions data:', transactionsData)
         setTransactions(transactionsData.transactions || [])
+      } else {
+        const errorData = await transactionsResponse.json()
+        console.error('Transactions API error:', errorData)
       }
     } catch (error) {
       console.error('Error loading user data:', error)
