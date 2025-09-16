@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
-import { User } from '@supabase/supabase-js'
+import { supabase, User } from '../../lib/supabase'
 
 export default function TFMLandingPage() {
+  console.log('TFM Landing Page component mounted')
+
   const [activeTab, setActiveTab] = useState('buy');
   const [buyAmount, setBuyAmount] = useState('');
   const [sendAmount, setSendAmount] = useState('');
@@ -22,8 +23,11 @@ export default function TFMLandingPage() {
 
   // Auth effect
   useEffect(() => {
+    console.log('TFM useEffect started')
     const getSession = async () => {
+      console.log('Getting session...')
       const { data: { session } } = await supabase.auth.getSession()
+      console.log('Session:', session)
 
       if (session?.user) {
         // Fetch our custom user data from the users table
