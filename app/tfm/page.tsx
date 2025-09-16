@@ -1,40 +1,194 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase'
+import { User } from '@supabase/supabase-js'
 
 export default function TFMLandingPage() {
   const [activeTab, setActiveTab] = useState('buy');
   const [buyAmount, setBuyAmount] = useState('');
   const [sendAmount, setSendAmount] = useState('');
-  const [balance, setBalance] = useState(1247.50);
+  const [sendTo, setSendTo] = useState('');
+  const [balance, setBalance] = useState(0);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
 
-  const transactions = [
-    { id: 1, type: 'received', amount: 150.00, from: 'coffee-shop-downtown', time: '2h ago', status: 'confirmed' },
-    { id: 2, type: 'sent', amount: 25.50, to: 'pizza-place-main-st', time: '5h ago', status: 'confirmed' },
-    { id: 3, type: 'received', amount: 500.00, from: 'friend-sarah', time: '1d ago', status: 'confirmed' },
-    { id: 4, type: 'sent', amount: 75.25, to: 'grocery-store-elm', time: '2d ago', status: 'confirmed' },
-    { id: 5, type: 'purchased', amount: 1000.00, from: 'bank-transfer', time: '3d ago', status: 'confirmed' },
-  ];
+  // Auth and loading states
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [buyLoading, setBuyLoading] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [message, setMessage] = useState('');
 
-  const handleBuy = () => {
-    if (buyAmount && parseFloat(buyAmount) > 0) {
-      const tfmReceived = parseFloat(buyAmount) * 10; // 90% discount = 10x multiplier
-      setBalance(prev => prev + tfmReceived);
-      setBuyAmount('');
-      alert(`Successfully purchased ${tfmReceived} TFM for $${buyAmount}!`);
-    }
-  };
+  // Auth effect
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
 
-  const handleSend = () => {
-    if (sendAmount && parseFloat(sendAmount) > 0 && parseFloat(sendAmount) <= balance) {
-      setBalance(prev => prev - parseFloat(sendAmount));
-      setSendAmount('');
-      alert(`Successfully sent ${sendAmount} TFM`);
-    } else if (parseFloat(sendAmount) > balance) {
-      alert('Insufficient balance');
+      if (session?.user) {
+        await loadUserData(session.user)
+      } else {
+        setLoading(false)
+      }
     }
-  };
+    getSession()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        await loadUserData(session.user)
+      } else {
+        setBalance(0)
+        setTransactions([])
+        setLoading(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const loadUserData = async (user: User) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return
+
+      // Load balance
+      const balanceResponse = await fetch('/api/tfm/balance', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (balanceResponse.ok) {
+        const balanceData = await balanceResponse.json()
+        setBalance(parseFloat(balanceData.balance?.balance || 0))
+      }
+
+      // Load transactions
+      const transactionsResponse = await fetch('/api/tfm/transactions?limit=10', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (transactionsResponse.ok) {
+        const transactionsData = await transactionsResponse.json()
+        setTransactions(transactionsData.transactions || [])
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBuy = async () => {
+    if (!user) {
+      window.location.href = '/auth'
+      return
+    }
+
+    if (!buyAmount || parseFloat(buyAmount) <= 0) {
+      setMessage('Please enter a valid amount')
+      return
+    }
+
+    setBuyLoading(true)
+    setMessage('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('Not authenticated')
+
+      const response = await fetch('/api/tfm/purchase', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          usdAmount: parseFloat(buyAmount)
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setBalance(data.new_balance)
+        setBuyAmount('')
+        setMessage(data.message)
+        await loadUserData(user) // Refresh transactions
+      } else {
+        setMessage(data.error || 'Purchase failed')
+      }
+    } catch (error) {
+      setMessage('Purchase failed. Please try again.')
+      console.error('Purchase error:', error)
+    } finally {
+      setBuyLoading(false)
+    }
+  }
+
+  const handleSend = async () => {
+    if (!user) {
+      window.location.href = '/auth'
+      return
+    }
+
+    if (!sendAmount || parseFloat(sendAmount) <= 0) {
+      setMessage('Please enter a valid amount to send')
+      return
+    }
+
+    if (!sendTo.trim()) {
+      setMessage('Please enter recipient username or email')
+      return
+    }
+
+    if (parseFloat(sendAmount) > balance) {
+      setMessage('Insufficient balance')
+      return
+    }
+
+    setSendLoading(true)
+    setMessage('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('Not authenticated')
+
+      const response = await fetch('/api/tfm/transfer', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: parseFloat(sendAmount),
+          toUsername: sendTo.includes('@') ? null : sendTo,
+          toEmail: sendTo.includes('@') ? sendTo : null
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setBalance(data.new_balance)
+        setSendAmount('')
+        setSendTo('')
+        setMessage(data.message)
+        await loadUserData(user) // Refresh transactions
+      } else {
+        setMessage(data.error || 'Transfer failed')
+      }
+    } catch (error) {
+      setMessage('Transfer failed. Please try again.')
+      console.error('Transfer error:', error)
+    } finally {
+      setSendLoading(false)
+    }
+  }
 
   const tabs = [
     { id: 'buy', label: 'Buy', icon: '💰' },
@@ -81,6 +235,33 @@ export default function TFMLandingPage() {
       answer: "Yes! During our inception phase, you can purchase TFM for 90% off the regular price. This early adopter discount won't last forever, so get your totally fake money while it's cheap."
     }
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading TFM data...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="text-center mb-8">
+          <h1 className="text-6xl md:text-8xl font-bold font-mono tracking-tight text-gray-800 mb-4">
+            TFM
+          </h1>
+          <p className="text-gray-600 mb-6">Please sign in to access your TFM account</p>
+          <a
+            href="/auth"
+            className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+          >
+            Sign In / Sign Up
+          </a>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 font-sans pt-20 pb-20">
@@ -131,6 +312,17 @@ export default function TFMLandingPage() {
           ))}
         </div>
 
+        {/* Message Display */}
+        {message && (
+          <div className={`mx-6 mt-4 p-3 rounded-md text-sm ${
+            message.includes('Success') || message.includes('purchased') || message.includes('sent')
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-700'
+          }`}>
+            {message}
+          </div>
+        )}
+
         {/* Tab Content */}
         <div className="p-6">
           {activeTab === 'buy' && (
@@ -152,10 +344,10 @@ export default function TFMLandingPage() {
               </div>
               <button
                 onClick={handleBuy}
-                disabled={!buyAmount || parseFloat(buyAmount) <= 0}
+                disabled={!buyAmount || parseFloat(buyAmount) <= 0 || buyLoading}
                 className="w-full bg-orange-600 text-white py-2 px-4 rounded-md font-medium hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
-                Purchase TFM
+                {buyLoading ? 'Processing...' : 'Purchase TFM'}
               </button>
             </div>
           )}
@@ -183,16 +375,18 @@ export default function TFMLandingPage() {
                 </label>
                 <input
                   type="text"
+                  value={sendTo}
+                  onChange={(e) => setSendTo(e.target.value)}
                   placeholder="username or email"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
               <button
                 onClick={handleSend}
-                disabled={!sendAmount || parseFloat(sendAmount) <= 0}
+                disabled={!sendAmount || parseFloat(sendAmount) <= 0 || !sendTo.trim() || sendLoading}
                 className="w-full bg-orange-600 text-white py-2 px-4 rounded-md font-medium hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
-                Send TFM
+                {sendLoading ? 'Sending...' : 'Send TFM'}
               </button>
             </div>
           )}
@@ -200,33 +394,39 @@ export default function TFMLandingPage() {
           {activeTab === 'history' && (
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-gray-700 mb-3">Recent Transactions</h3>
-              {transactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className={`text-xs px-2 py-1 rounded font-mono ${
-                        tx.type === 'received' ? 'bg-green-100 text-green-700' :
-                        tx.type === 'sent' ? 'bg-red-100 text-red-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
-                        {tx.type}
-                      </span>
-                      <span className="text-xs text-gray-500">{tx.time}</span>
+              {transactions.length === 0 ? (
+                <p className="text-gray-500 text-sm text-center py-8">No transactions yet</p>
+              ) : (
+                transactions.map((tx) => (
+                  <div key={tx.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-xs px-2 py-1 rounded font-mono ${
+                          tx.display_type === 'received' ? 'bg-green-100 text-green-700' :
+                          tx.display_type === 'sent' ? 'bg-red-100 text-red-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {tx.display_type}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(tx.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 font-mono mt-1">
+                        {tx.counterparty?.username || tx.counterparty?.email || tx.description}
+                      </p>
                     </div>
-                    <p className="text-sm text-gray-700 font-mono mt-1">
-                      {tx.from || tx.to}
-                    </p>
+                    <div className="text-right">
+                      <p className={`font-mono font-medium ${
+                        tx.direction === 'incoming' ? 'text-green-600' : 'text-gray-800'
+                      }`}>
+                        {tx.direction === 'incoming' ? '+' : '-'}{tx.amount.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500">{tx.status}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-mono font-medium ${
-                      tx.type === 'received' ? 'text-green-600' : 'text-gray-800'
-                    }`}>
-                      {tx.type === 'received' ? '+' : '-'}{tx.amount.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-gray-500">{tx.status}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           )}
 
