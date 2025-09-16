@@ -56,8 +56,8 @@ export async function GET(request: NextRequest) {
       description: tx.description,
       created_at: tx.created_at,
       processed_at: tx.processed_at,
-      direction: tx.from_user?.email === user.email ? 'outgoing' : 'incoming',
-      counterparty: tx.from_user?.email === user.email
+      direction: (tx.from_user as any)?.email === user.email ? 'outgoing' : 'incoming',
+      counterparty: (tx.from_user as any)?.email === user.email
         ? tx.to_user
         : tx.from_user,
       display_type: tx.transaction_type === 'purchase' ? 'purchased' :
