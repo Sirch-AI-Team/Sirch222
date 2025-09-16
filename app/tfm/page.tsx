@@ -24,21 +24,50 @@ export default function TFMLandingPage() {
   useEffect(() => {
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
 
       if (session?.user) {
-        await loadUserData(session.user)
+        // Fetch our custom user data from the users table
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (userData && !error) {
+          setUser(userData)
+          await loadUserData(userData)
+        } else {
+          console.error('Error fetching user data:', error)
+          setLoading(false)
+        }
       } else {
+        setUser(null)
         setLoading(false)
       }
     }
     getSession()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null)
       if (session?.user) {
-        await loadUserData(session.user)
+        // Fetch our custom user data from the users table
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (userData && !error) {
+          setUser(userData)
+          await loadUserData(userData)
+        } else {
+          console.error('Error fetching user data:', error)
+          setUser(null)
+          setBalance(0)
+          setTransactions([])
+          setLoading(false)
+        }
       } else {
+        setUser(null)
         setBalance(0)
         setTransactions([])
         setLoading(false)
