@@ -777,10 +777,10 @@ export default function HackerNewsClient() {
                 className="w-full h-full border-0 rounded-lg"
                 title="Mobile Website View"
                 style={{
-                  transform: 'scale(1)',
+                  transform: 'scale(0.8)',
                   transformOrigin: 'top left',
-                  width: '100%',
-                  height: '100%'
+                  width: '125%',
+                  height: '125%'
                 }}
                 onLoad={() => {
                   console.log(`[MainBox] Iframe loaded for: ${currentUrl}`)
