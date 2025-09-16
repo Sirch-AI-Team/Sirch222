@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { supabase } from "../lib/supabase"
+import { User } from "@supabase/supabase-js"
 
 interface Story {
   id: number
@@ -38,6 +40,10 @@ export default function HackerNewsClient() {
   const [iframeFailed, setIframeFailed] = useState<Set<string>>(new Set())
   const [imageFailed, setImageFailed] = useState<Set<string>>(new Set())
   const [iframeLoaded, setIframeLoaded] = useState<Set<string>>(new Set())
+
+  // Auth state
+  const [user, setUser] = useState<User | null>(null)
+  const [showAuthMenu, setShowAuthMenu] = useState(false)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -499,6 +505,40 @@ export default function HackerNewsClient() {
     }
   }, [streamingIntervalRef])
 
+  // Auth effect
+  useEffect(() => {
+    // Get initial session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
+    }
+    getSession()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Close auth menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showAuthMenu) {
+        setShowAuthMenu(false)
+      }
+    }
+
+    if (showAuthMenu) {
+      document.addEventListener('click', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showAuthMenu])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -509,6 +549,59 @@ export default function HackerNewsClient() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Auth Icon - Top Right */}
+      <div className="fixed top-6 right-6 z-40">
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowAuthMenu(!showAuthMenu)
+            }}
+            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+          >
+            {user ? (
+              // Logged in user - show first letter of email
+              <span className="text-sm font-medium text-gray-700">
+                {user.email?.charAt(0).toUpperCase()}
+              </span>
+            ) : (
+              // Not logged in - show face icon
+              <span className="text-lg">👤</span>
+            )}
+          </button>
+
+          {/* Auth Menu Dropdown */}
+          {showAuthMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+              {user ? (
+                <>
+                  <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-100">
+                    {user.email}
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await supabase.auth.signOut()
+                      setShowAuthMenu(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <a
+                  href="/auth"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={() => setShowAuthMenu(false)}
+                >
+                  Sign In / Sign Up
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* PopSearch Modal */}
       {showCommandModal && (
         <div className="fixed inset-0 z-50 flex items-center">
