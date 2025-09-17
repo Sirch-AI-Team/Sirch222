@@ -26,30 +26,48 @@ export default function TFMLandingPage() {
     console.log('TFM useEffect started')
     const getSession = async () => {
       console.log('Getting session...')
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log('Session:', session)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('Session received:', session)
 
-      if (session?.user) {
-        // Fetch our custom user data from the users table
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
+        if (session?.user) {
+          console.log('User found in session, fetching user data...')
+          // Fetch our custom user data from the users table
+          const { data: userData, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
 
-        if (userData && !error) {
-          setUser(userData)
-          await loadUserData(userData)
+          console.log('User data:', userData, 'Error:', error)
+
+          if (userData && !error) {
+            console.log('Setting user and loading data...')
+            setUser(userData)
+            await loadUserData(userData)
+          } else {
+            console.error('Error fetching user data:', error)
+            setLoading(false)
+          }
         } else {
-          console.error('Error fetching user data:', error)
+          console.log('No user in session, setting loading false')
+          setUser(null)
           setLoading(false)
         }
-      } else {
-        setUser(null)
+      } catch (error) {
+        console.error('Error in getSession:', error)
         setLoading(false)
       }
     }
-    getSession()
+    // Add timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      console.error('Session timeout after 10 seconds')
+      setLoading(false)
+    }, 10000)
+
+    getSession().finally(() => {
+      clearTimeout(timeoutId)
+    })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
