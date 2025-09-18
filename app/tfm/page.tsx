@@ -41,14 +41,20 @@ export default function TFMLandingPage() {
           const { data: { session } } = await supabase.auth.getSession()
           const accessToken = session?.access_token
 
-          // Fetch user data using direct API calls
-          const userDataArray = await fetchUser(authUser.data.user.id, accessToken)
+          // Fetch user data using Supabase client for proper RLS context
+          const { data: userDataArray, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authUser.data.user.id)
 
-          if (userDataArray && userDataArray.length > 0) {
+          if (userError) {
+            console.error('User data error:', userError)
+            setLoading(false)
+          } else if (userDataArray && userDataArray.length > 0) {
             const userData = userDataArray[0]
             console.log('User data loaded:', userData)
             setUser(userData)
-            await loadUserDataDirect(userData, accessToken)
+            await loadUserDataDirect(userData)
           } else {
             console.log('No user data found')
             setLoading(false)
@@ -82,24 +88,47 @@ export default function TFMLandingPage() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Direct data loading using fetch API to bypass hanging Supabase client
-  const loadUserDataDirect = async (user: User, accessToken?: string) => {
+  // Direct data loading using Supabase client for proper RLS context
+  const loadUserDataDirect = async (user: User) => {
     try {
       console.log('Loading TFM data for user:', user.email)
 
-      // Load balance using direct fetch
-      const balanceData = await fetchTfmBalance(user.id, accessToken)
+      // Load balance using Supabase client
+      const { data: balanceData, error: balanceError } = await supabase
+        .from('tfm_balances')
+        .select('*')
+        .eq('user_id', user.id)
+
       console.log('Balance data:', balanceData)
 
-      if (balanceData && balanceData.length > 0) {
+      if (balanceError) {
+        console.error('Balance error:', balanceError)
+        setBalance(0)
+      } else if (balanceData && balanceData.length > 0) {
         setBalance(parseFloat(balanceData[0].balance || 0))
       } else {
         setBalance(0)
       }
 
-      // Load transactions using direct fetch
-      const transactionsData = await fetchTransactions(user.id, 10, accessToken)
+      // Load transactions using Supabase client
+      const { data: transactionsData, error: transactionsError } = await supabase
+        .from('transactions')
+        .select(`
+          *,
+          from_user:from_user_id(email,username),
+          to_user:to_user_id(email,username)
+        `)
+        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
+        .order('created_at', { ascending: false })
+        .limit(10)
       console.log('Transactions data:', transactionsData)
+      console.log('Transactions error:', transactionsError)
+
+      if (transactionsError) {
+        console.error('Transactions error:', transactionsError)
+        setTransactions([])
+        return
+      }
 
       // Format transactions for display
       const formattedTransactions = transactionsData?.map((tx: any) => ({
