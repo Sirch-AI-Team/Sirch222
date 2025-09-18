@@ -397,6 +397,9 @@ export default function HackerNewsClient() {
   }
 
   useEffect(() => {
+    // Failsafe: ensure UI always renders even if fetchStories fails completely
+    let failsafeTimeout: NodeJS.Timeout | null = null
+
     const fetchStories = async () => {
       try {
         console.log("[Sirch] Fetching stories from API...")
@@ -440,23 +443,30 @@ export default function HackerNewsClient() {
       } finally {
         // CRITICAL: Always set loading to false so UI renders
         setLoading(false)
+        // Clear failsafe timeout since fetchStories completed
+        if (failsafeTimeout) {
+          clearTimeout(failsafeTimeout)
+          failsafeTimeout = null
+        }
       }
     }
 
-    fetchStories()
-
-    // Failsafe: ensure UI always renders even if fetchStories fails completely
-    const failsafeTimeout = setTimeout(() => {
+    // Set failsafe timeout before calling fetchStories
+    failsafeTimeout = setTimeout(() => {
       console.warn("[Sirch] Failsafe timeout - forcing UI to render")
       setLoading(false)
       setStories([])
     }, 10000) // 10 second absolute maximum
 
+    fetchStories()
+
     const interval = setInterval(fetchStories, 2 * 60 * 1000) // Refresh every 2 minutes
 
     return () => {
       clearInterval(interval)
-      clearTimeout(failsafeTimeout)
+      if (failsafeTimeout) {
+        clearTimeout(failsafeTimeout)
+      }
     }
   }, [])
 
