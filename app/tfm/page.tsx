@@ -1,8 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase, User } from '../../lib/supabase'
+import { supabase } from '../../lib/supabase'
 import { fetchUser, fetchTfmBalance, fetchTransactions } from '../../lib/supabaseFetch'
+
+// Extended user type that includes handle
+interface TfmUser {
+  id: string
+  email: string
+  username?: string
+  handle?: string
+  created_at?: string
+  updated_at?: string
+}
 
 export default function TFMLandingPage() {
   console.log('TFM Landing Page component mounted')
@@ -15,7 +25,7 @@ export default function TFMLandingPage() {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
 
   // Auth and loading states
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<TfmUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [buyLoading, setBuyLoading] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
@@ -92,7 +102,7 @@ export default function TFMLandingPage() {
   }, [])
 
   // Direct data loading using Supabase client for proper RLS context
-  const loadUserDataDirect = async (user: User) => {
+  const loadUserDataDirect = async (user: TfmUser) => {
     try {
       console.log('Loading TFM data for user:', user.email)
 
@@ -163,7 +173,7 @@ export default function TFMLandingPage() {
   }
 
   // Keep original function for API calls that still work
-  const loadUserData = async (user: User) => {
+  const loadUserData = async (user: TfmUser) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) {
