@@ -48,6 +48,7 @@ export default function HackerNewsClient() {
   // Saved pages state
   const [savedPages, setSavedPages] = useState<Set<string>>(new Set())
   const [savingPages, setSavingPages] = useState<Set<string>>(new Set())
+  const [username, setUsername] = useState<string | null>(null)
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -570,6 +571,7 @@ export default function HackerNewsClient() {
         .single()
 
       if (profile?.username) {
+        setUsername(profile.username)
         const response = await fetch(`/api/users/${profile.username}/saved`)
         if (response.ok) {
           const data = await response.json()
@@ -756,6 +758,15 @@ export default function HackerNewsClient() {
                   <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-100">
                     {user.email}
                   </div>
+                  {username && (
+                    <a
+                      href={`/${username}`}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setShowAuthMenu(false)}
+                    >
+                      Profile
+                    </a>
+                  )}
                   <button
                     onClick={async () => {
                       await supabase.auth.signOut()
