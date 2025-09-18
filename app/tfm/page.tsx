@@ -20,7 +20,10 @@ export default function TFMLandingPage() {
   const [buyLoading, setBuyLoading] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState('')
+  const [refreshingHandle, setRefreshingHandle] = useState(false)
+  const [handleSuggestions, setHandleSuggestions] = useState<{handle: string, email: string}[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Auth effect - simplified approach using direct fetch
   useEffect(() => {
@@ -295,8 +298,9 @@ export default function TFMLandingPage() {
         },
         body: JSON.stringify({
           amount: parseFloat(sendAmount),
-          toUsername: sendTo.includes('@') ? null : sendTo,
-          toEmail: sendTo.includes('@') ? sendTo : null
+          toUsername: !sendTo.includes('@') && !sendTo.includes(' ') ? sendTo : null,
+          toEmail: sendTo.includes('@') ? sendTo : null,
+          toHandle: sendTo.includes(' ') ? sendTo : null
         })
       })
 
@@ -318,6 +322,81 @@ export default function TFMLandingPage() {
       setSendLoading(false)
     }
   }
+
+  const handleRefreshHandle = async () => {
+    if (!user) return
+
+    setRefreshingHandle(true)
+    setMessage('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('Not authenticated')
+
+      const response = await fetch('/api/tfm/generate-handle', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setUser({ ...user, handle: data.handle })
+        setMessage(`Your new handle is "${data.handle}"`)
+      } else {
+        setMessage(data.error || 'Failed to generate new handle')
+      }
+    } catch (error) {
+      setMessage('Failed to generate new handle. Please try again.')
+      console.error('Handle refresh error:', error)
+    } finally {
+      setRefreshingHandle(false)
+    }
+  }
+
+  // Handle autocomplete search
+  const searchHandles = async (query: string) => {
+    if (!query || query.length < 2) {
+      setHandleSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return
+
+      const response = await fetch(`/api/tfm/search-handles?q=${encodeURIComponent(query)}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setHandleSuggestions(data.handles || [])
+        setShowSuggestions(data.handles?.length > 0)
+      }
+    } catch (error) {
+      console.error('Handle search error:', error)
+    }
+  }
+
+  // Debounced handle search
+  useEffect(() => {
+    if (sendTo.includes(' ') && sendTo.length >= 2) {
+      const timeoutId = setTimeout(() => {
+        searchHandles(sendTo)
+      }, 300)
+      return () => clearTimeout(timeoutId)
+    } else {
+      setHandleSuggestions([])
+      setShowSuggestions(false)
+    }
+  }, [sendTo])
 
   const tabs = [
     { id: 'buy', label: 'Buy', icon: '💰' },
@@ -411,12 +490,40 @@ export default function TFMLandingPage() {
         </h1>
       </div>
 
-      {/* Balance Display */}
+      {/* Balance and Handle Display */}
       <div className="text-center mb-6">
         <p className="text-sm text-gray-500 mb-1">Your Balance</p>
         <p className="text-3xl font-mono font-semibold text-gray-800">
           {balance.toFixed(2)} <span className="text-orange-600">TFM</span>
         </p>
+
+        <div className="mt-4">
+          <div className="flex items-center justify-center gap-2">
+            <p className="text-sm text-gray-500">Your Handle</p>
+            <button
+              onClick={handleRefreshHandle}
+              disabled={refreshingHandle}
+              className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+              title="Generate new handle"
+            >
+              {refreshingHandle ? (
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="14 14" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                  <path d="M21 3v5h-5"/>
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                  <path d="M3 21v-5h5"/>
+                </svg>
+              )}
+            </button>
+          </div>
+          <p className="text-lg font-medium text-gray-700 mt-1">
+            {user?.handle || 'Loading...'}
+          </p>
+        </div>
       </div>
 
       {/* Main Card */}
@@ -498,7 +605,7 @@ export default function TFMLandingPage() {
                   Available: {balance.toFixed(2)} TFM
                 </p>
               </div>
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Send to
                 </label>
@@ -506,9 +613,38 @@ export default function TFMLandingPage() {
                   type="text"
                   value={sendTo}
                   onChange={(e) => setSendTo(e.target.value)}
-                  placeholder="username or email"
+                  onFocus={() => {
+                    if (handleSuggestions.length > 0) {
+                      setShowSuggestions(true)
+                    }
+                  }}
+                  onBlur={() => {
+                    // Delay hiding suggestions to allow clicks
+                    setTimeout(() => setShowSuggestions(false), 200)
+                  }}
+                  placeholder="email or handle"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
+
+                {/* Autocomplete Suggestions */}
+                {showSuggestions && handleSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                    {handleSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => {
+                          setSendTo(suggestion.handle)
+                          setShowSuggestions(false)
+                        }}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                      >
+                        <div className="font-medium text-gray-900">{suggestion.handle}</div>
+                        <div className="text-sm text-gray-500">{suggestion.email}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 onClick={handleSend}

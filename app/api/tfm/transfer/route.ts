@@ -4,14 +4,14 @@ import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
-    const { amount, toUsername, toEmail } = await request.json()
+    const { amount, toUsername, toEmail, toHandle } = await request.json()
 
     if (!amount || amount <= 0) {
       return Response.json({ error: 'Invalid transfer amount' }, { status: 400 })
     }
 
-    if (!toUsername && !toEmail) {
-      return Response.json({ error: 'Must specify recipient username or email' }, { status: 400 })
+    if (!toUsername && !toEmail && !toHandle) {
+      return Response.json({ error: 'Must specify recipient username, email, or handle' }, { status: 400 })
     }
 
     // Get user from auth header
@@ -28,10 +28,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Find recipient user using admin client
-    let recipientQuery = supabaseAdmin.from('users').select('id, email, username')
+    let recipientQuery = supabaseAdmin.from('users').select('id, email, username, handle')
 
     if (toEmail) {
       recipientQuery = recipientQuery.eq('email', toEmail)
+    } else if (toHandle) {
+      recipientQuery = recipientQuery.eq('handle', toHandle)
     } else {
       recipientQuery = recipientQuery.eq('username', toUsername)
     }
@@ -63,10 +65,11 @@ export async function POST(request: NextRequest) {
         p_amount: amount,
         p_from_user_id: user.id,
         p_to_user_id: recipientData.id,
-        p_description: `Transferred ${amount} TFM to ${recipientData.username || recipientData.email}`,
+        p_description: `Transferred ${amount} TFM to ${recipientData.handle || recipientData.username || recipientData.email}`,
         p_metadata: {
           recipient_username: recipientData.username,
           recipient_email: recipientData.email,
+          recipient_handle: recipientData.handle,
           transfer_method: 'web'
         }
       }
@@ -103,10 +106,11 @@ export async function POST(request: NextRequest) {
       amount_sent: amount,
       recipient: {
         username: recipientData.username,
-        email: recipientData.email
+        email: recipientData.email,
+        handle: recipientData.handle
       },
       new_balance: newBalance || 0,
-      message: `Successfully sent ${amount} TFM to ${recipientData.username || recipientData.email}`
+      message: `Successfully sent ${amount} TFM to ${recipientData.handle || recipientData.username || recipientData.email}`
     })
 
   } catch (error) {
