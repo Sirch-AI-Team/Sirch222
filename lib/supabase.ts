@@ -40,3 +40,37 @@ export type User = {
   created_at: string
   updated_at: string
 }
+
+export type UserProfile = {
+  id: string
+  username: string
+  display_name: string | null
+  bio: string | null
+  avatar_url: string | null
+  is_public: boolean
+  created_at: string
+}
+
+export type SavedPage = {
+  id: string
+  url: string
+  title: string | null
+  description: string | null
+  thumbnail_url: string | null
+  domain: string | null
+  saved_at: string
+  metadata: Record<string, any>
+}
+
+export type UserSavedPagesResponse = {
+  success: boolean
+  profile: {
+    username: string
+    display_name: string | null
+    bio: string | null
+    avatar_url: string | null
+    created_at: string
+  }
+  saved_pages: SavedPage[]
+  total_count: number
+}

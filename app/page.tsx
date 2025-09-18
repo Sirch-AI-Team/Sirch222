@@ -557,16 +557,18 @@ export default function HackerNewsClient() {
               e.stopPropagation()
               setShowAuthMenu(!showAuthMenu)
             }}
-            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+            className="w-8 h-8 bg-black hover:bg-gray-800 rounded-full flex items-center justify-center transition-colors border border-gray-700"
           >
             {user ? (
               // Logged in user - show first letter of email
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-xs font-medium text-white">
                 {user.email?.charAt(0).toUpperCase()}
               </span>
             ) : (
-              // Not logged in - show face icon
-              <span className="text-lg">👤</span>
+              // Not logged in - show minimalist person icon
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+              </svg>
             )}
           </button>
 
