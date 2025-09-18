@@ -510,6 +510,9 @@ export default function TFMLandingPage() {
             </p>
           </div>
 
+          {/* Vertical separator */}
+          <div className="w-px h-12 bg-black"></div>
+
           <div>
             <div className="flex items-center justify-center gap-2">
               <p className="text-sm text-gray-500">Your Handle</p>
