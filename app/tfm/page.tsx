@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase, User } from '../../lib/supabase'
+import { supabaseAdmin } from '../../lib/supabaseAdmin'
 
 export default function TFMLandingPage() {
   console.log('TFM Landing Page component mounted')
@@ -27,7 +28,13 @@ export default function TFMLandingPage() {
     const getSession = async () => {
       console.log('Getting session...')
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        // Add timeout to prevent hanging
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session timeout in TFM')), 8000)
+        )
+
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any
         console.log('Session received:', session)
 
         if (session?.user) {
@@ -56,7 +63,36 @@ export default function TFMLandingPage() {
         }
       } catch (error) {
         console.error('Error in getSession:', error)
-        setLoading(false)
+
+        // If session times out, try to get user from local storage or cookies
+        if (error.message === 'Session timeout in TFM') {
+          console.log('Session timed out, trying alternative auth check...')
+
+          // Check if user is already authenticated by looking at auth state
+          const authUser = supabase.auth.getUser()
+          authUser.then(({ data: { user: authUser }, error: authError }) => {
+            if (authUser && !authError) {
+              console.log('Found auth user via getUser:', authUser)
+              // Fetch user data directly
+              supabaseAdmin.from('users')
+                .select('*')
+                .eq('id', authUser.id)
+                .single()
+                .then(({ data: userData, error: userError }) => {
+                  if (userData && !userError) {
+                    setUser(userData)
+                    loadUserData(userData)
+                  } else {
+                    setLoading(false)
+                  }
+                })
+            } else {
+              setLoading(false)
+            }
+          }).catch(() => setLoading(false))
+        } else {
+          setLoading(false)
+        }
       }
     }
     // Add timeout to prevent hanging
