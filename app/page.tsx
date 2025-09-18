@@ -563,7 +563,7 @@ export default function HackerNewsClient() {
         const response = await fetch(`/api/users/${profile.username}/saved`)
         if (response.ok) {
           const data = await response.json()
-          const urls = new Set(data.saved_pages?.map((page: any) => page.url) || [])
+          const urls = new Set<string>(data.saved_pages?.map((page: any) => page.url).filter((url: any) => typeof url === 'string') || [])
           setSavedPages(urls)
         }
       }
