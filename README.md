@@ -2,6 +2,8 @@
 
 Real-time HackerNews stories with AI-generated summaries, updated every 10 minutes.
 
+🏠 **Repository**: Now hosted under [Sirch-AI-Team](https://github.com/Sirch-AI-Team/Sirch222)
+
 ## Features
 
 - 📊 Real-time sync with HackerNews top 100 stories
