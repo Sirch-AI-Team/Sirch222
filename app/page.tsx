@@ -45,6 +45,10 @@ export default function HackerNewsClient() {
   const [user, setUser] = useState<User | null>(null)
   const [showAuthMenu, setShowAuthMenu] = useState(false)
 
+  // Saved pages state
+  const [savedPages, setSavedPages] = useState<Set<string>>(new Set())
+  const [savingPages, setSavingPages] = useState<Set<string>>(new Set())
+
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
     const now = Date.now() / 1000
@@ -505,18 +509,59 @@ export default function HackerNewsClient() {
     }
   }, [streamingIntervalRef])
 
+  // Load user's saved pages
+  const loadSavedPages = async (user: any) => {
+    if (!user) {
+      setSavedPages(new Set())
+      return
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return
+
+      // Get user's profile to find their username, then get their saved pages
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.username) {
+        const response = await fetch(`/api/users/${profile.username}/saved`)
+        if (response.ok) {
+          const data = await response.json()
+          const urls = new Set(data.saved_pages?.map((page: any) => page.url) || [])
+          setSavedPages(urls)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading saved pages:', error)
+    }
+  }
+
   // Auth effect
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
+      const user = session?.user ?? null
+      setUser(user)
+      if (user) {
+        loadSavedPages(user)
+      }
     }
     getSession()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      const user = session?.user ?? null
+      setUser(user)
+      if (user) {
+        loadSavedPages(user)
+      } else {
+        setSavedPages(new Set())
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -538,6 +583,95 @@ export default function HackerNewsClient() {
       document.removeEventListener('click', handleClickOutside)
     }
   }, [showAuthMenu])
+
+  // Save page functionality
+  const handleSavePage = async (url: string, title: string, description?: string) => {
+    if (!user) {
+      // Redirect to auth if not logged in
+      window.location.href = '/auth'
+      return
+    }
+
+    if (!url) return
+
+    setSavingPages(prev => new Set(prev).add(url))
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        console.error('No session or access token available')
+        return
+      }
+
+      const response = await fetch('/api/save-page', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url,
+          title,
+          description
+        })
+      })
+
+      if (response.ok) {
+        setSavedPages(prev => new Set(prev).add(url))
+      } else {
+        console.error('Failed to save page')
+      }
+    } catch (error) {
+      console.error('Error saving page:', error)
+    } finally {
+      setSavingPages(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(url)
+        return newSet
+      })
+    }
+  }
+
+  const handleUnsavePage = async (url: string) => {
+    if (!user || !url) return
+
+    setSavingPages(prev => new Set(prev).add(url))
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        console.error('No session or access token available')
+        return
+      }
+
+      const response = await fetch('/api/save-page', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url })
+      })
+
+      if (response.ok) {
+        setSavedPages(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(url)
+          return newSet
+        })
+      } else {
+        console.error('Failed to unsave page')
+      }
+    } catch (error) {
+      console.error('Error unsaving page:', error)
+    } finally {
+      setSavingPages(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(url)
+        return newSet
+      })
+    }
+  }
 
   if (loading) {
     return (
@@ -972,6 +1106,38 @@ export default function HackerNewsClient() {
                     {index + 1}
                   </span>
 
+                  {/* Save/Heart Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (savedPages.has(result.url)) {
+                        handleUnsavePage(result.url)
+                      } else {
+                        handleSavePage(result.url, result.title, result.description || undefined)
+                      }
+                    }}
+                    disabled={savingPages.has(result.url)}
+                    className={`flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors ${
+                      savingPages.has(result.url)
+                        ? "text-gray-400"
+                        : savedPages.has(result.url)
+                          ? "text-red-500 hover:text-red-600"
+                          : "text-gray-400 hover:text-red-500"
+                    }`}
+                    title={savedPages.has(result.url) ? "Unsave page" : "Save page"}
+                  >
+                    {savingPages.has(result.url) ? (
+                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
+                        <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-3 h-3" fill={savedPages.has(result.url) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    )}
+                  </button>
+
                   <div className="flex-1 min-w-0">
                     <h2 className={`leading-snug ${alignedSearchIndex === index ? "text-orange-500" : "text-black"}`}>
                       <a
@@ -1015,6 +1181,39 @@ export default function HackerNewsClient() {
                 >
                   {index + 1}
                 </span>
+
+                {/* Save/Heart Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const url = story.url || `https://news.ycombinator.com/item?id=${story.id}`
+                    if (savedPages.has(url)) {
+                      handleUnsavePage(url)
+                    } else {
+                      handleSavePage(url, story.title, story.summary || undefined)
+                    }
+                  }}
+                  disabled={savingPages.has(story.url || `https://news.ycombinator.com/item?id=${story.id}`)}
+                  className={`flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors ${
+                    savingPages.has(story.url || `https://news.ycombinator.com/item?id=${story.id}`)
+                      ? "text-gray-400"
+                      : savedPages.has(story.url || `https://news.ycombinator.com/item?id=${story.id}`)
+                        ? "text-red-500 hover:text-red-600"
+                        : "text-gray-400 hover:text-red-500"
+                  }`}
+                  title={savedPages.has(story.url || `https://news.ycombinator.com/item?id=${story.id}`) ? "Unsave page" : "Save page"}
+                >
+                  {savingPages.has(story.url || `https://news.ycombinator.com/item?id=${story.id}`) ? (
+                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
+                      <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3" fill={savedPages.has(story.url || `https://news.ycombinator.com/item?id=${story.id}`) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  )}
+                </button>
 
                 <div className="flex-1 min-w-0">
                   <h2 className={`leading-snug ${alignedStoryIndex === index ? "text-orange-500" : "text-black"}`}>
