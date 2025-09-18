@@ -1,6 +1,6 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
+import { supabase } from '../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 // Lists of words for generating handles
 const adjectives = [
@@ -30,7 +30,7 @@ function generateRandomHandle(): string {
   return `${adjective} ${noun}`
 }
 
-async function generateUniqueHandle(supabase: any): Promise<string> {
+async function generateUniqueHandle(): Promise<string> {
   let attempts = 0
   const maxAttempts = 100
 
@@ -38,7 +38,7 @@ async function generateUniqueHandle(supabase: any): Promise<string> {
     const handle = generateRandomHandle()
 
     // Check if handle already exists
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('handle', handle)
@@ -58,7 +58,7 @@ async function generateUniqueHandle(supabase: any): Promise<string> {
   while (counter < 1000) {
     const numberedHandle = `${baseHandle} ${counter}`
 
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('handle', numberedHandle)
@@ -74,31 +74,36 @@ async function generateUniqueHandle(supabase: any): Promise<string> {
   throw new Error('Unable to generate unique handle')
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    // Get user from auth header
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return Response.json({ error: 'No authorization header' }, { status: 401 })
+    }
 
-    // Get current user
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+      return Response.json({ error: 'Invalid token' }, { status: 401 })
     }
 
     // Generate new unique handle
-    const newHandle = await generateUniqueHandle(supabase)
+    const newHandle = await generateUniqueHandle()
 
-    // Update user's handle
-    const { error: updateError } = await supabase
+    // Update user's handle using admin client
+    const { error: updateError } = await supabaseAdmin
       .from('users')
       .update({ handle: newHandle, updated_at: new Date().toISOString() })
-      .eq('id', session.user.id)
+      .eq('id', user.id)
 
     if (updateError) {
       console.error('Error updating handle:', updateError)
-      return NextResponse.json({ error: 'Failed to update handle' }, { status: 500 })
+      return Response.json({ error: 'Failed to update handle' }, { status: 500 })
     }
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
       handle: newHandle,
       message: `Your new handle is "${newHandle}"`
@@ -106,6 +111,6 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Generate handle error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
