@@ -548,9 +548,7 @@ export default function HackerNewsClient() {
   }
 
   return (
-    <div className="min-h-screen bg-white relative">
-      {/* Black background for left sidebar area */}
-      <div className="fixed left-0 top-0 w-96 h-full bg-black" />
+    <div className="min-h-screen bg-white">
       {/* Auth Icon - Top Right */}
       <div className="fixed top-6 right-6 z-40">
         <div className="relative">
@@ -841,7 +839,7 @@ export default function HackerNewsClient() {
       <div className="fixed w-4 h-px bg-black" style={{ top: `${cursorY}px`, left: "400px" }} />
 
       {/* MainBox */}
-      <div className="fixed top-6 w-80 h-96 bg-white border border-gray-100 shadow-sm z-10" style={{ left: "24px" }}>
+      <div className="fixed top-6 w-80 h-96 bg-white border border-gray-100 shadow-sm" style={{ left: "24px" }}>
         {(() => {
           const currentUrl = getCurrentWebsiteUrl()
 
@@ -911,15 +909,15 @@ export default function HackerNewsClient() {
       </div>
 
       {/* Bottom left search bar and TFM button */}
-      <div className="fixed bottom-6 left-6 w-80 flex items-center gap-3 z-10">
+      <div className="fixed bottom-6 left-6 w-80 flex items-center gap-3">
         <div className="relative flex-1">
           <input
             type="text"
             placeholder="Sirch the web (I ❤️ Goog)"
-            className={`w-full px-4 py-3 text-sm border-2 rounded-lg focus:outline-none transition-colors cursor-pointer ${
+            className={`w-full px-4 py-3 text-sm border rounded-lg focus:outline-none transition-colors cursor-pointer ${
               showCommandModal
                 ? "bg-white text-black border-gray-300 focus:border-gray-400 placeholder-gray-500"
-                : "bg-black text-white border-white focus:border-white placeholder-gray-400"
+                : "bg-black text-white border-gray-800 focus:border-gray-600 placeholder-gray-400"
             }`}
             onClick={() => setShowCommandModal(true)}
             onFocus={() => setShowCommandModal(true)}
