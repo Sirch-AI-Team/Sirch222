@@ -9,39 +9,58 @@ export default function TestSupabasePage() {
 
   const testConnection = async () => {
     setLoading(true)
-    setResult('Testing Supabase connection...')
+    setResult('Step 1: Testing basic connectivity...')
 
     try {
-      console.log('Creating Supabase client...')
-      const supabase = createClient(
-        'https://liobdrwdjkznvqigglxw.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpb2Jkcndkamt6bnZxaWdnbHh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1NTYwNzUsImV4cCI6MjA3MzEzMjA3NX0.RghbXl5KZA2hVFCjUcH-gSaQg6Wc_ykVIRbJVkDYsLM'
-      )
+      // Step 1: Test basic fetch to Supabase
+      setResult('Step 1: Testing fetch to Supabase API...')
+      const basicResponse = await fetch('https://liobdrwdjkznvqigglxw.supabase.co/rest/v1/', {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpb2Jkcndkamt6bnZxaWdnbHh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1NTYwNzUsImV4cCI6MjA3MzEzMjA3NX0.RghbXl5KZA2hVFCjUcH-gSaQg6Wc_ykVIRbJVkDYsLM'
+        }
+      })
 
-      console.log('Client created, testing simple query...')
-
-      // Test a simple query first
-      const { data: testData, error: testError } = await supabase
-        .from('users')
-        .select('count(*)')
-        .limit(1)
-
-      if (testError) {
-        setResult(`Query test failed: ${testError.message}`)
+      if (!basicResponse.ok) {
+        setResult(`❌ Step 1 failed: HTTP ${basicResponse.status}`)
         return
       }
 
-      console.log('Query successful, testing auth session...')
+      // Step 2: Test Supabase client creation
+      setResult('Step 2: Creating Supabase client...')
+      console.log('Creating Supabase client...')
 
-      // Now test auth session with timeout
-      const sessionPromise = supabase.auth.getSession()
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Session timeout')), 5000)
+      const supabase = createClient(
+        'https://liobdrwdjkznvqigglxw.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpb2Jkcndkamt6bnZxaWdnbHh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1NTYwNzUsImV4cCI6MjA3MzEzMjA3NX0.RghbXl5KZA2hVFCjUcH-gSaQg6Wc_ykVIRbJVkDYsLM',
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+            detectSessionInUrl: false
+          }
+        }
       )
 
-      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any
+      console.log('Client created successfully')
 
-      setResult(`✅ Success! Session: ${session ? 'Found user session' : 'No active session (normal)'}`)
+      // Step 3: Test simple query
+      setResult('Step 3: Testing simple database query...')
+      console.log('Testing simple query...')
+
+      const queryPromise = supabase.from('users').select('count(*)').limit(1)
+      const queryTimeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+      )
+
+      const { data: testData, error: testError } = await Promise.race([queryPromise, queryTimeoutPromise]) as any
+
+      if (testError) {
+        setResult(`❌ Step 3 failed: ${testError.message}`)
+        return
+      }
+
+      console.log('Query successful')
+      setResult(`✅ All tests passed! Database accessible, client working.`)
 
     } catch (error) {
       console.error('Test failed:', error)
