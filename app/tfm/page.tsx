@@ -64,7 +64,7 @@ export default function TFMLandingPage() {
         console.error('Error in getSession:', error)
 
         // If session times out, try to get user from local storage or cookies
-        if (error.message === 'Session timeout in TFM') {
+        if (error instanceof Error && error.message === 'Session timeout in TFM') {
           console.log('Session timed out, trying alternative auth check...')
 
           // Check if user is already authenticated by looking at auth state
