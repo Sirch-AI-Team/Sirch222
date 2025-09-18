@@ -605,6 +605,7 @@ export default function HackerNewsClient() {
         loadSavedPages(user)
       } else {
         setSavedPages(new Set())
+        setUsername(null)
       }
     })
 
@@ -758,15 +759,13 @@ export default function HackerNewsClient() {
                   <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-100">
                     {user.email}
                   </div>
-                  {username && (
-                    <a
-                      href={`/${username}`}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setShowAuthMenu(false)}
-                    >
-                      Profile
-                    </a>
-                  )}
+                  <a
+                    href={username ? `/${username}` : '/auth'}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setShowAuthMenu(false)}
+                  >
+                    Profile
+                  </a>
                   <button
                     onClick={async () => {
                       await supabase.auth.signOut()
