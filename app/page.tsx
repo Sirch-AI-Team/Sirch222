@@ -865,7 +865,8 @@ export default function HackerNewsClient() {
                   transform: 'scale(0.8)',
                   transformOrigin: 'top left',
                   width: '125%',
-                  height: '125%'
+                  height: '125%',
+                  direction: 'rtl'
                 }}
                 onLoad={() => {
                   console.log(`[MainBox] Iframe loaded successfully for: ${currentUrl}`)
@@ -913,11 +914,11 @@ export default function HackerNewsClient() {
         <div className="relative flex-1">
           <input
             type="text"
-            placeholder="Sirch the web (I ❤️ Goog)"
+            placeholder="Sirch the web"
             className={`w-full px-4 py-3 text-sm border rounded-lg focus:outline-none transition-colors cursor-pointer ${
               showCommandModal
                 ? "bg-white text-black border-gray-300 focus:border-gray-400 placeholder-gray-500"
-                : "bg-black text-white border-gray-800 focus:border-gray-600 placeholder-gray-400"
+                : "bg-black text-white border-gray-800 focus:border-gray-600 placeholder-white"
             }`}
             onClick={() => setShowCommandModal(true)}
             onFocus={() => setShowCommandModal(true)}

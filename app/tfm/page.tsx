@@ -369,7 +369,7 @@ export default function TFMLandingPage() {
 
   // Handle autocomplete search
   const searchHandles = async (query: string) => {
-    if (!query || query.length < 2) {
+    if (!query || query.length < 1) {
       setHandleSuggestions([])
       setShowSuggestions(false)
       return
@@ -397,7 +397,7 @@ export default function TFMLandingPage() {
 
   // Debounced handle search
   useEffect(() => {
-    if (sendTo.includes(' ') && sendTo.length >= 2) {
+    if (sendTo.includes(' ') && sendTo.length >= 1) {
       const timeoutId = setTimeout(() => {
         searchHandles(sendTo)
       }, 300)
@@ -497,7 +497,9 @@ export default function TFMLandingPage() {
       <div className="fixed top-6 right-6">
         <div className="text-right">
           <div className="flex items-center justify-end gap-2">
-            <p className="text-sm text-gray-500">Your Handle</p>
+            <p className="text-lg font-mono font-semibold text-gray-800">
+              {user?.handle || 'Loading...'}
+            </p>
             <button
               onClick={handleRefreshHandle}
               disabled={refreshingHandle}
@@ -518,9 +520,6 @@ export default function TFMLandingPage() {
               )}
             </button>
           </div>
-          <p className="text-lg font-mono font-semibold text-gray-800 mt-1">
-            {user?.handle || 'Loading...'}
-          </p>
         </div>
       </div>
 
