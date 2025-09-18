@@ -14,6 +14,10 @@ export async function GET(request: Request) {
 
     let endpoint = `${supabaseUrl}/rest/v1/hack?limit=${limit}&offset=${offset}&order=rank_position.asc`
 
+    // Create abort controller for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+
     const response = await fetch(endpoint, {
       headers: {
         apikey: apiKey,
@@ -23,8 +27,11 @@ export async function GET(request: Request) {
         "Pragma": "no-cache",
         "Expires": "0"
       },
-      cache: 'no-store'
+      cache: 'no-store',
+      signal: controller.signal
     })
+
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -56,8 +63,22 @@ export async function GET(request: Request) {
     apiResponse.headers.set('Expires', '0')
     
     return apiResponse
-  } catch (error) {
+  } catch (error: any) {
     console.error("[v0] Stories API error:", error)
-    return Response.json({ error: "Server error" }, { status: 500 })
+
+    // Handle different types of errors
+    if (error.name === 'AbortError') {
+      console.error("[v0] Stories API timeout after 5 seconds")
+      return Response.json({
+        error: "Request timeout",
+        stories: [] // Return empty array as fallback
+      }, { status: 504 })
+    }
+
+    // Return empty stories array as fallback for any error
+    return Response.json({
+      error: "Server error",
+      stories: [] // Always provide fallback data
+    }, { status: 500 })
   }
 }

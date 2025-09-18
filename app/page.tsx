@@ -400,7 +400,19 @@ export default function HackerNewsClient() {
     const fetchStories = async () => {
       try {
         console.log("[Sirch] Fetching stories from API...")
-        const response = await fetch("/api/stories")
+
+        // Create abort controller for timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => {
+          controller.abort()
+          console.warn("[Sirch] Stories API timeout after 8 seconds")
+        }, 8000) // 8 second timeout (longer than backend's 5s)
+
+        const response = await fetch("/api/stories", {
+          signal: controller.signal
+        })
+
+        clearTimeout(timeoutId)
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
@@ -413,19 +425,39 @@ export default function HackerNewsClient() {
           setStories(data.stories)
           console.log(`[Sirch] Loaded ${data.stories.length} stories`)
         } else {
-          console.log("[Sirch] No stories available")
+          console.log("[Sirch] No stories available, using empty array")
+          setStories([]) // Ensure stories is set to empty array
         }
-        setLoading(false)
-      } catch (error) {
+      } catch (error: any) {
         console.error("[Sirch] Error fetching stories:", error)
+
+        if (error.name === 'AbortError') {
+          console.warn("[Sirch] Stories fetch aborted due to timeout")
+        }
+
+        // Always set empty array as fallback so UI can render
+        setStories([])
+      } finally {
+        // CRITICAL: Always set loading to false so UI renders
         setLoading(false)
       }
     }
 
     fetchStories()
 
+    // Failsafe: ensure UI always renders even if fetchStories fails completely
+    const failsafeTimeout = setTimeout(() => {
+      console.warn("[Sirch] Failsafe timeout - forcing UI to render")
+      setLoading(false)
+      setStories([])
+    }, 10000) // 10 second absolute maximum
+
     const interval = setInterval(fetchStories, 2 * 60 * 1000) // Refresh every 2 minutes
-    return () => clearInterval(interval)
+
+    return () => {
+      clearInterval(interval)
+      clearTimeout(failsafeTimeout)
+    }
   }, [])
 
   // Mouse tracking for cursor line
@@ -587,7 +619,7 @@ export default function HackerNewsClient() {
   // Save page functionality
   const handleSavePage = async (url: string, title: string, description?: string) => {
     if (!user) {
-      // Redirect to auth if not logged in
+      // Show auth modal/redirect if not logged in
       window.location.href = '/auth'
       return
     }
