@@ -565,7 +565,7 @@ export default function HackerNewsClient() {
 
       // Get user's profile to find their username, then get their saved pages
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('users')
         .select('username')
         .eq('id', user.id)
         .single()
