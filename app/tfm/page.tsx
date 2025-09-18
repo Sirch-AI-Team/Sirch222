@@ -502,37 +502,41 @@ export default function TFMLandingPage() {
 
       {/* Balance and Handle Display */}
       <div className="text-center mb-6">
-        <p className="text-sm text-gray-500 mb-1">Your Balance</p>
-        <p className="text-3xl font-mono font-semibold text-gray-800">
-          {balance.toFixed(2)} <span className="text-orange-600">TFM</span>
-        </p>
-
-        <div className="mt-4">
-          <div className="flex items-center justify-center gap-2">
-            <p className="text-sm text-gray-500">Your Handle</p>
-            <button
-              onClick={handleRefreshHandle}
-              disabled={refreshingHandle}
-              className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-              title="Generate new handle"
-            >
-              {refreshingHandle ? (
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="14 14" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                  <path d="M21 3v5h-5"/>
-                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                  <path d="M3 21v-5h5"/>
-                </svg>
-              )}
-            </button>
+        <div className="flex justify-center items-baseline gap-8">
+          <div>
+            <p className="text-sm text-gray-500 mb-1">Your Balance</p>
+            <p className="text-3xl font-mono font-semibold text-gray-800">
+              {balance.toFixed(2)} <span className="text-orange-600">TFM</span>
+            </p>
           </div>
-          <p className="text-lg font-medium text-gray-700 mt-1">
-            {user?.handle || 'Loading...'}
-          </p>
+
+          <div>
+            <div className="flex items-center justify-center gap-2">
+              <p className="text-sm text-gray-500">Your Handle</p>
+              <button
+                onClick={handleRefreshHandle}
+                disabled={refreshingHandle}
+                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                title="Generate new handle"
+              >
+                {refreshingHandle ? (
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="14 14" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                    <path d="M21 3v5h-5"/>
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                    <path d="M3 21v-5h5"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+            <p className="text-3xl font-mono font-semibold text-gray-800 mt-1">
+              {user?.handle || 'Loading...'}
+            </p>
+          </div>
         </div>
       </div>
 
