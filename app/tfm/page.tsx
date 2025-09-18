@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase, User } from '../../lib/supabase'
+import { fetchUser, fetchTfmBalance, fetchTransactions } from '../../lib/supabaseFetch'
 
 export default function TFMLandingPage() {
   console.log('TFM Landing Page component mounted')
@@ -21,108 +22,51 @@ export default function TFMLandingPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [message, setMessage] = useState('');
 
-  // Auth effect
+  // Auth effect - simplified approach using direct fetch
   useEffect(() => {
     console.log('TFM useEffect started')
-    const getSession = async () => {
-      console.log('Getting session...')
+
+    const loadTfmData = async () => {
       try {
-        // Add timeout to prevent hanging
-        const sessionPromise = supabase.auth.getSession()
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session timeout in TFM')), 8000)
-        )
+        console.log('Attempting to load TFM data...')
 
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any
-        console.log('Session received:', session)
+        // Try to get current auth user without hanging session calls
+        const authUser = await supabase.auth.getUser()
+        console.log('Auth user check:', authUser)
 
-        if (session?.user) {
-          console.log('User found in session, fetching user data...')
-          // Fetch our custom user data from the users table
-          const { data: userData, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+        if (authUser.data.user && !authUser.error) {
+          console.log('Found authenticated user, fetching data...')
 
-          console.log('User data:', userData, 'Error:', error)
+          // Fetch user data using direct API calls
+          const userDataArray = await fetchUser(authUser.data.user.id)
 
-          if (userData && !error) {
-            console.log('Setting user and loading data...')
+          if (userDataArray && userDataArray.length > 0) {
+            const userData = userDataArray[0]
+            console.log('User data loaded:', userData)
             setUser(userData)
-            await loadUserData(userData)
+            await loadUserDataDirect(userData)
           } else {
-            console.error('Error fetching user data:', error)
+            console.log('No user data found')
             setLoading(false)
           }
         } else {
-          console.log('No user in session, setting loading false')
+          console.log('No authenticated user found')
           setUser(null)
           setLoading(false)
         }
       } catch (error) {
-        console.error('Error in getSession:', error)
-
-        // If session times out, try to get user from local storage or cookies
-        if (error instanceof Error && error.message === 'Session timeout in TFM') {
-          console.log('Session timed out, trying alternative auth check...')
-
-          // Check if user is already authenticated by looking at auth state
-          const authUser = supabase.auth.getUser()
-          authUser.then(({ data: { user: authUser }, error: authError }) => {
-            if (authUser && !authError) {
-              console.log('Found auth user via getUser:', authUser)
-              // Fetch user data using regular client
-              supabase.from('users')
-                .select('*')
-                .eq('id', authUser.id)
-                .single()
-                .then(({ data: userData, error: userError }) => {
-                  if (userData && !userError) {
-                    setUser(userData)
-                    loadUserData(userData)
-                  } else {
-                    setLoading(false)
-                  }
-                })
-            } else {
-              setLoading(false)
-            }
-          }).catch(() => setLoading(false))
-        } else {
-          setLoading(false)
-        }
+        console.error('Error loading TFM data:', error)
+        setLoading(false)
       }
     }
-    // Add timeout to prevent hanging
-    const timeoutId = setTimeout(() => {
-      console.error('Session timeout after 10 seconds')
-      setLoading(false)
-    }, 10000)
 
-    getSession().finally(() => {
-      clearTimeout(timeoutId)
-    })
+    loadTfmData()
 
+    // Still listen for auth state changes but handle them more simply
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('Auth state changed:', _event, session?.user?.id)
       if (session?.user) {
-        // Fetch our custom user data from the users table
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (userData && !error) {
-          setUser(userData)
-          await loadUserData(userData)
-        } else {
-          console.error('Error fetching user data:', error)
-          setUser(null)
-          setBalance(0)
-          setTransactions([])
-          setLoading(false)
-        }
+        loadTfmData()
       } else {
         setUser(null)
         setBalance(0)
@@ -134,6 +78,55 @@ export default function TFMLandingPage() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Direct data loading using fetch API to bypass hanging Supabase client
+  const loadUserDataDirect = async (user: User) => {
+    try {
+      console.log('Loading TFM data for user:', user.email)
+
+      // Load balance using direct fetch
+      const balanceData = await fetchTfmBalance(user.id)
+      console.log('Balance data:', balanceData)
+
+      if (balanceData && balanceData.length > 0) {
+        setBalance(parseFloat(balanceData[0].balance || 0))
+      } else {
+        setBalance(0)
+      }
+
+      // Load transactions using direct fetch
+      const transactionsData = await fetchTransactions(user.id, 10)
+      console.log('Transactions data:', transactionsData)
+
+      // Format transactions for display
+      const formattedTransactions = transactionsData?.map((tx: any) => ({
+        id: tx.id,
+        type: tx.transaction_type,
+        amount: parseFloat(tx.amount),
+        usd_amount: tx.usd_amount ? parseFloat(tx.usd_amount) : null,
+        exchange_rate: tx.exchange_rate ? parseFloat(tx.exchange_rate) : null,
+        status: tx.status,
+        description: tx.description,
+        created_at: tx.created_at,
+        processed_at: tx.processed_at,
+        direction: tx.from_user?.email === user.email ? 'outgoing' : 'incoming',
+        counterparty: tx.from_user?.email === user.email ? tx.to_user : tx.from_user,
+        display_type: tx.transaction_type === 'purchase' ? 'purchased' :
+                     tx.transaction_type === 'transfer_out' ? 'sent' :
+                     tx.transaction_type === 'transfer_in' ? 'received' :
+                     tx.transaction_type === 'ad_payment' ? 'ad_spend' :
+                     tx.transaction_type
+      })) || []
+
+      setTransactions(formattedTransactions)
+
+    } catch (error) {
+      console.error('Error loading user data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Keep original function for API calls that still work
   const loadUserData = async (user: User) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
