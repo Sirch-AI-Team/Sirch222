@@ -4,14 +4,16 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // Helper function to make direct API calls to Supabase
-async function supabaseFetch(endpoint: string, options: RequestInit = {}) {
+async function supabaseFetch(endpoint: string, options: RequestInit = {}, accessToken?: string) {
   const url = `${SUPABASE_URL}/rest/v1${endpoint}`
+
+  const authToken = accessToken || SUPABASE_ANON_KEY
 
   const response = await fetch(url, {
     ...options,
     headers: {
       'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Authorization': `Bearer ${authToken}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
       ...options.headers,
@@ -27,26 +29,27 @@ async function supabaseFetch(endpoint: string, options: RequestInit = {}) {
 }
 
 // Get user by ID
-export async function fetchUser(userId: string) {
+export async function fetchUser(userId: string, accessToken?: string) {
   return supabaseFetch(`/users?id=eq.${userId}&select=*`, {
     method: 'GET'
-  })
+  }, accessToken)
 }
 
 // Get TFM balance
-export async function fetchTfmBalance(userId: string) {
+export async function fetchTfmBalance(userId: string, accessToken?: string) {
   return supabaseFetch(`/tfm_balances?user_id=eq.${userId}&select=*`, {
     method: 'GET'
-  })
+  }, accessToken)
 }
 
 // Get transactions
-export async function fetchTransactions(userId: string, limit = 10) {
+export async function fetchTransactions(userId: string, limit = 10, accessToken?: string) {
   return supabaseFetch(
     `/transactions?or=(from_user_id.eq.${userId},to_user_id.eq.${userId})&select=*,from_user:from_user_id(email,username),to_user:to_user_id(email,username)&order=created_at.desc&limit=${limit}`,
     {
       method: 'GET'
-    }
+    },
+    accessToken
   )
 }
 

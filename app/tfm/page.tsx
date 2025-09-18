@@ -37,14 +37,18 @@ export default function TFMLandingPage() {
         if (authUser.data.user && !authUser.error) {
           console.log('Found authenticated user, fetching data...')
 
+          // Get session for access token
+          const { data: { session } } = await supabase.auth.getSession()
+          const accessToken = session?.access_token
+
           // Fetch user data using direct API calls
-          const userDataArray = await fetchUser(authUser.data.user.id)
+          const userDataArray = await fetchUser(authUser.data.user.id, accessToken)
 
           if (userDataArray && userDataArray.length > 0) {
             const userData = userDataArray[0]
             console.log('User data loaded:', userData)
             setUser(userData)
-            await loadUserDataDirect(userData)
+            await loadUserDataDirect(userData, accessToken)
           } else {
             console.log('No user data found')
             setLoading(false)
@@ -79,12 +83,12 @@ export default function TFMLandingPage() {
   }, [])
 
   // Direct data loading using fetch API to bypass hanging Supabase client
-  const loadUserDataDirect = async (user: User) => {
+  const loadUserDataDirect = async (user: User, accessToken?: string) => {
     try {
       console.log('Loading TFM data for user:', user.email)
 
       // Load balance using direct fetch
-      const balanceData = await fetchTfmBalance(user.id)
+      const balanceData = await fetchTfmBalance(user.id, accessToken)
       console.log('Balance data:', balanceData)
 
       if (balanceData && balanceData.length > 0) {
@@ -94,7 +98,7 @@ export default function TFMLandingPage() {
       }
 
       // Load transactions using direct fetch
-      const transactionsData = await fetchTransactions(user.id, 10)
+      const transactionsData = await fetchTransactions(user.id, 10, accessToken)
       console.log('Transactions data:', transactionsData)
 
       // Format transactions for display
