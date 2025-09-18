@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabase } from '../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,8 +22,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(url.searchParams.get('limit') || '50')
     const offset = parseInt(url.searchParams.get('offset') || '0')
 
-    // Get user's transactions
-    const { data: transactions, error: transactionsError } = await supabase
+    // Get user's transactions using admin client
+    const { data: transactions, error: transactionsError } = await supabaseAdmin
       .from('transactions')
       .select(`
         id,

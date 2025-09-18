@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabase } from '../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,15 +23,15 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get current exchange rate
-    const { data: exchangeRate } = await supabase.rpc('get_current_tfm_rate')
+    // Get current exchange rate using admin client
+    const { data: exchangeRate } = await supabaseAdmin.rpc('get_current_tfm_rate')
     const currentRate = exchangeRate || 10.0 // Default to inception rate
 
     // Calculate TFM amount
     const tfmAmount = usdAmount * currentRate
 
-    // Process the transaction using our database function
-    const { data: transactionId, error: transactionError } = await supabase.rpc(
+    // Process the transaction using our database function with admin client
+    const { data: transactionId, error: transactionError } = await supabaseAdmin.rpc(
       'process_tfm_transaction',
       {
         p_transaction_type: 'purchase',
@@ -51,8 +52,8 @@ export async function POST(request: NextRequest) {
       throw transactionError
     }
 
-    // Get updated balance
-    const { data: balanceData } = await supabase
+    // Get updated balance using admin client
+    const { data: balanceData } = await supabaseAdmin
       .from('tfm_balances')
       .select('*')
       .eq('user_id', user.id)

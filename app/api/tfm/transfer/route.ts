@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabase } from '../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,8 +27,8 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Find recipient user
-    let recipientQuery = supabase.from('users').select('id, email, username')
+    // Find recipient user using admin client
+    let recipientQuery = supabaseAdmin.from('users').select('id, email, username')
 
     if (toEmail) {
       recipientQuery = recipientQuery.eq('email', toEmail)
@@ -45,8 +46,8 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Cannot transfer to yourself' }, { status: 400 })
     }
 
-    // Check sender's balance
-    const { data: senderBalance } = await supabase.rpc('get_user_tfm_balance', {
+    // Check sender's balance using admin client
+    const { data: senderBalance } = await supabaseAdmin.rpc('get_user_tfm_balance', {
       p_user_id: user.id
     })
 
@@ -54,8 +55,8 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Insufficient TFM balance' }, { status: 400 })
     }
 
-    // Process the transfer (this handles both debit and credit)
-    const { data: transferOutId, error: transferError } = await supabase.rpc(
+    // Process the transfer using admin client (this handles both debit and credit)
+    const { data: transferOutId, error: transferError } = await supabaseAdmin.rpc(
       'process_tfm_transaction',
       {
         p_transaction_type: 'transfer_out',
@@ -75,8 +76,8 @@ export async function POST(request: NextRequest) {
       throw transferError
     }
 
-    // Create corresponding transfer_in transaction
-    const { data: transferInId } = await supabase.rpc(
+    // Create corresponding transfer_in transaction using admin client
+    const { data: transferInId } = await supabaseAdmin.rpc(
       'process_tfm_transaction',
       {
         p_transaction_type: 'transfer_in',
@@ -91,8 +92,8 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    // Get updated balance
-    const { data: newBalance } = await supabase.rpc('get_user_tfm_balance', {
+    // Get updated balance using admin client
+    const { data: newBalance } = await supabaseAdmin.rpc('get_user_tfm_balance', {
       p_user_id: user.id
     })
 

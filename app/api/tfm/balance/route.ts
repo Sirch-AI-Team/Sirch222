@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabase } from '../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,8 +17,8 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get user's TFM balance
-    const { data: balanceData, error: balanceError } = await supabase
+    // Get user's TFM balance using admin client
+    const { data: balanceData, error: balanceError } = await supabaseAdmin
       .from('tfm_balances')
       .select('*')
       .eq('user_id', user.id)
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     // If no balance exists, create one
     if (!balanceData) {
-      const { data: newBalance, error: createError } = await supabase
+      const { data: newBalance, error: createError } = await supabaseAdmin
         .from('tfm_balances')
         .insert({
           user_id: user.id,
