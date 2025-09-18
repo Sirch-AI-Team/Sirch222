@@ -181,7 +181,7 @@ export default function TFMLandingPage() {
 
   const handleBuy = async () => {
     if (!user) {
-      window.location.href = '/auth'
+      window.location.href = '/auth?redirectTo=/tfm'
       return
     }
 
@@ -228,7 +228,7 @@ export default function TFMLandingPage() {
 
   const handleSend = async () => {
     if (!user) {
-      window.location.href = '/auth'
+      window.location.href = '/auth?redirectTo=/tfm'
       return
     }
 
@@ -349,7 +349,7 @@ export default function TFMLandingPage() {
           </h1>
           <p className="text-gray-600 mb-6">Please sign in to access your TFM account</p>
           <a
-            href="/auth"
+            href="/auth?redirectTo=/tfm"
             className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
           >
             Sign In / Sign Up

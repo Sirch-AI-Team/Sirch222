@@ -44,8 +44,10 @@ export default function AuthPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        // Redirect to home after successful login
-        window.location.href = '/'
+        // Redirect to intended destination or home after successful login
+        const urlParams = new URLSearchParams(window.location.search)
+        const redirectTo = urlParams.get('redirectTo') || '/'
+        window.location.href = redirectTo
       }
     })
 
