@@ -43,24 +43,47 @@ export default function TestSupabasePage() {
 
       console.log('Client created successfully')
 
-      // Step 3: Test simple query
-      setResult('Step 3: Testing simple database query...')
-      console.log('Testing simple query...')
+      // Step 3: Test simple query with Supabase client
+      setResult('Step 3a: Testing Supabase client query...')
+      console.log('Testing Supabase client query...')
 
-      const queryPromise = supabase.from('hack').select('count(*)').limit(1)
-      const queryTimeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
-      )
+      try {
+        const queryPromise = supabase.from('hack').select('count(*)').limit(1)
+        const queryTimeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Supabase client timeout after 5 seconds')), 5000)
+        )
 
-      const { data: testData, error: testError } = await Promise.race([queryPromise, queryTimeoutPromise]) as any
+        const { data: supabaseData, error: supabaseError } = await Promise.race([queryPromise, queryTimeoutPromise]) as any
 
-      if (testError) {
-        setResult(`❌ Step 3 failed: ${testError.message}`)
+        if (supabaseError) {
+          console.log('Supabase client failed, trying direct fetch...')
+        } else {
+          setResult(`✅ Supabase client works! Data: ${JSON.stringify(supabaseData)}`)
+          return
+        }
+      } catch (clientError) {
+        console.log('Supabase client failed, trying direct fetch...')
+      }
+
+      // Step 3b: Test direct fetch as fallback
+      setResult('Step 3b: Testing direct API fetch...')
+      console.log('Testing direct fetch...')
+
+      const fetchResponse = await fetch('https://liobdrwdjkznvqigglxw.supabase.co/rest/v1/hack?select=count&limit=1', {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpb2Jkcndkamt6bnZxaWdnbHh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1NTYwNzUsImV4cCI6MjA3MzEzMjA3NX0.RghbXl5KZA2hVFCjUcH-gSaQg6Wc_ykVIRbJVkDYsLM',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpb2Jkcndkamt6bnZxaWdnbHh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1NTYwNzUsImV4cCI6MjA3MzEzMjA3NX0.RghbXl5KZA2hVFCjUcH-gSaQg6Wc_ykVIRbJVkDYsLM'
+        }
+      })
+
+      if (!fetchResponse.ok) {
+        setResult(`❌ Direct fetch failed: HTTP ${fetchResponse.status}`)
         return
       }
 
-      console.log('Query successful')
-      setResult(`✅ All tests passed! Database accessible, client working.`)
+      const fetchData = await fetchResponse.json()
+      console.log('Direct fetch successful')
+      setResult(`✅ Direct fetch works! Supabase client has issues. Data: ${JSON.stringify(fetchData)}`)
 
     } catch (error) {
       console.error('Test failed:', error)
