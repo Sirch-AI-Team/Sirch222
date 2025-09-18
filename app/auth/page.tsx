@@ -15,13 +15,30 @@ export default function AuthPage() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
+    console.log('Auth page useEffect started')
     // Get initial session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      setLoading(false)
+      console.log('Getting session in auth page...')
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('Auth page session received:', session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      } catch (error) {
+        console.error('Auth page session error:', error)
+        setLoading(false)
+      }
     }
-    getSession()
+
+    // Add timeout
+    const timeoutId = setTimeout(() => {
+      console.error('Auth page session timeout after 10 seconds')
+      setLoading(false)
+    }, 10000)
+
+    getSession().finally(() => {
+      clearTimeout(timeoutId)
+    })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
