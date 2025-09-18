@@ -47,7 +47,7 @@ export default function TestSupabasePage() {
       setResult('Step 3: Testing simple database query...')
       console.log('Testing simple query...')
 
-      const queryPromise = supabase.from('users').select('count(*)').limit(1)
+      const queryPromise = supabase.from('hack').select('count(*)').limit(1)
       const queryTimeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
       )
