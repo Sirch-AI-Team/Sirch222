@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { supabase, User } from '../../lib/supabase'
-import { supabaseAdmin } from '../../lib/supabaseAdmin'
 
 export default function TFMLandingPage() {
   console.log('TFM Landing Page component mounted')
@@ -73,8 +72,8 @@ export default function TFMLandingPage() {
           authUser.then(({ data: { user: authUser }, error: authError }) => {
             if (authUser && !authError) {
               console.log('Found auth user via getUser:', authUser)
-              // Fetch user data directly
-              supabaseAdmin.from('users')
+              // Fetch user data using regular client
+              supabase.from('users')
                 .select('*')
                 .eq('id', authUser.id)
                 .single()
