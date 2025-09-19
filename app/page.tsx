@@ -41,15 +41,15 @@ export default function HackerNewsClient() {
   const [imageFailed, setImageFailed] = useState<Set<string>>(new Set())
   const [iframeLoaded, setIframeLoaded] = useState<Set<string>>(new Set())
 
-  // Auth state
+  // Auth & User state
   const [user, setUser] = useState<User | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
   const [showAuthMenu, setShowAuthMenu] = useState(false)
 
   // Saved pages state
   const [savedPages, setSavedPages] = useState<Set<string>>(new Set())
   const [savingPages, setSavingPages] = useState<Set<string>>(new Set())
-  const [username, setUsername] = useState<string | null>(null)
-  const [subscriptions, setSubscriptions] = useState<string[]>([]) // List of usernames user is subscribed to
+  const [subscriptions, setSubscriptions] = useState<string[]>([])
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -553,100 +553,47 @@ export default function HackerNewsClient() {
     }
   }, [streamingIntervalRef])
 
-  // Load user's saved pages
-  const loadSavedPages = async (user: any) => {
-    if (!user) {
-      setSavedPages(new Set())
-      return
-    }
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
-
-      // Get user's profile to find their username, then get their saved pages
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .single()
-
-      if (profile?.username) {
-        setUsername(profile.username)
-        const headers: HeadersInit = {}
-        const token = session?.access_token
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`
-        }
-
-        const response = await fetch(`/api/users/${profile.username}/saved`, { headers })
-        if (response.ok) {
-          const data = await response.json()
-          const urls = new Set<string>(data.saved_pages?.map((page: any) => page.url).filter((url: any) => typeof url === 'string') || [])
-          setSavedPages(urls)
-        }
-
-        // Load user's subscriptions (placeholder for now)
-        // TODO: Implement actual subscription API
-        setSubscriptions([]) // Empty for now, will be populated with actual subscriptions later
-      }
-    } catch (error) {
-      console.error('Error loading saved pages:', error)
-    }
-  }
-
-  // Auth effect
+  // Initialize auth and user data
   useEffect(() => {
-    // Get initial session
-    const getSession = async () => {
-      try {
-        console.log('[AUTH] Getting initial session...')
-        console.log('[AUTH] Environment check:', {
-          hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-          hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-          url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
-          key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) + '...'
-        })
-        const { data: { session }, error } = await supabase.auth.getSession()
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user ?? null
+      setUser(user)
 
-        if (error) {
-          console.error('[AUTH] Session error:', error)
-          return
-        }
+      if (user) {
+        // Get user profile and saved pages
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single()
 
-        const user = session?.user ?? null
-        console.log('[AUTH] Initial session result:', {
-          hasSession: !!session,
-          hasUser: !!user,
-          userEmail: user?.email
-        })
-        setUser(user)
-        if (user) {
-          loadSavedPages(user)
+        if (profile?.username) {
+          setUsername(profile.username)
+
+          // Load saved pages directly from database
+          const { data: savedPagesData } = await supabase
+            .from('saved_pages')
+            .select('url')
+            .eq('user_id', user.id)
+
+          if (savedPagesData) {
+            setSavedPages(new Set(savedPagesData.map(page => page.url)))
+          }
         }
-      } catch (error) {
-        console.error('[AUTH] Exception getting session:', error)
+      } else {
+        setUsername(null)
+        setSavedPages(new Set())
+        setSubscriptions([])
       }
     }
-    getSession()
+
+    initAuth()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[AUTH] Auth state change:', {
-        event,
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userEmail: session?.user?.email
-      })
-      const user = session?.user ?? null
-      setUser(user)
-      if (user) {
-        loadSavedPages(user)
-      } else {
-        setSavedPages(new Set())
-        setUsername(null)
-        setSubscriptions([])
-      }
+      setUser(session?.user ?? null)
+      initAuth()
     })
 
     return () => subscription.unsubscribe()

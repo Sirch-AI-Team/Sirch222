@@ -22,15 +22,14 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
   const isViewingOwnProfile = isOwnProfile || (currentUserUsername !== null && currentUserUsername === username)
 
-  // Auth effect
+  // Initialize auth
   useEffect(() => {
-    const getSession = async () => {
+    const initAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       const currentUser = session?.user ?? null
       setUser(currentUser)
 
       if (currentUser) {
-        // Get current user's username
         const { data: profile } = await supabase
           .from('profiles')
           .select('username')
@@ -43,28 +42,11 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         }
       }
     }
-    getSession()
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
+    initAuth()
 
-      if (currentUser) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', currentUser.id)
-          .single()
-
-        if (profile?.username) {
-          setCurrentUserUsername(profile.username)
-          setIsOwnProfile(profile.username === username)
-        }
-      } else {
-        setCurrentUserUsername(null)
-        setIsOwnProfile(false)
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      initAuth()
     })
 
     return () => subscription.unsubscribe()
@@ -97,11 +79,9 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         const result = await response.json()
         setData(result)
 
+        // Trust the server's ownership determination
         if (typeof result.is_owner === 'boolean') {
           setIsOwnProfile(result.is_owner)
-          if (result.is_owner) {
-            setCurrentUserUsername(prev => prev ?? result.profile.username)
-          }
         }
       } catch (err) {
         setError('Failed to load user profile')

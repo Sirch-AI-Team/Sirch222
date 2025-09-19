@@ -12,47 +12,32 @@ export async function GET(
       return Response.json({ error: 'Username is required' }, { status: 400 })
     }
 
+    // Get viewer ID from auth token
     let viewerUserId: string | null = null
-
     const authHeader = request.headers.get('authorization')
-    const token = authHeader?.startsWith('Bearer ')
-      ? authHeader.replace('Bearer ', '').trim()
-      : null
 
-    if (token) {
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '').trim()
       try {
-        // Use supabase admin client with timeout
-        const { data: viewerData, error: viewerError } = await supabaseAdmin.auth.getUser(token)
-        if (!viewerError && viewerData?.user) {
-          viewerUserId = viewerData.user.id
-        }
-      } catch (viewerError) {
-        console.error('Failed to validate viewer token:', viewerError)
+        const { data: userData } = await supabaseAdmin.auth.getUser(token)
+        viewerUserId = userData?.user?.id || null
+      } catch {
+        // Ignore token validation errors
       }
     }
 
-    // Fetch profile (including private ones)
+    // Get profile (all profiles are public now)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, username, display_name, bio, avatar_url, is_public, created_at')
+      .select('id, username, display_name, bio, avatar_url, created_at')
       .eq('username', username)
-      .maybeSingle()
+      .single()
 
-    if (profileError) {
-      console.error('Profile lookup error:', profileError)
-      return Response.json({ error: 'Failed to fetch profile' }, { status: 500 })
-    }
-
-    if (!profile) {
+    if (profileError || !profile) {
       return Response.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const isOwner = viewerUserId === profile.id
-
-    if (!profile.is_public && !isOwner) {
-      return Response.json({ error: 'User not found or profile is private' }, { status: 404 })
-    }
-
+    // Get saved pages
     const { data: savedPages, error: savedPagesError } = await supabaseAdmin
       .from('saved_pages')
       .select('id, url, title, description, thumbnail_url, domain, saved_at, metadata')
@@ -61,7 +46,6 @@ export async function GET(
       .limit(100)
 
     if (savedPagesError) {
-      console.error('Saved pages lookup error:', savedPagesError)
       return Response.json({ error: 'Failed to fetch saved pages' }, { status: 500 })
     }
 
@@ -76,7 +60,7 @@ export async function GET(
       },
       saved_pages: savedPages || [],
       total_count: savedPages?.length || 0,
-      is_owner: isOwner
+      is_owner: viewerUserId === profile.id
     })
 
   } catch (error) {

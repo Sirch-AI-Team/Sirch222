@@ -33,14 +33,6 @@ export type HackerNewsStory = {
   updated_at: string
 }
 
-export type User = {
-  id: string
-  email: string
-  username: string
-  created_at: string
-  updated_at: string
-}
-
 export type UserProfile = {
   id: string
   username: string
