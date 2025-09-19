@@ -23,23 +23,42 @@
     currentInputValue: ''
   }
 
-  let dom = {
-    container: null,
+  const dom = {
+    root: null,
+    overlay: null,
     backdrop: null,
-    shell: null,
-    input: null,
+    modalInput: null,
     suggestions: null,
     domains: null,
     popbox: null,
-    results: null,
+    resultsWrapper: null,
+    resultsList: null,
     resultsEmpty: null
   }
+
+  const escapeHTML = (value) => (
+    value == null
+      ? ''
+      : String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+  )
 
   const debounce = (fn, delay) => {
     let timer
     return (...args) => {
       clearTimeout(timer)
       timer = setTimeout(() => fn(...args), delay)
+    }
+  }
+
+  const stopStreamingText = () => {
+    if (state.streamingInterval) {
+      clearInterval(state.streamingInterval)
+      state.streamingInterval = null
     }
   }
 
@@ -66,55 +85,79 @@
     }, 20)
   }
 
-  const stopStreamingText = () => {
-    if (state.streamingInterval) {
-      clearInterval(state.streamingInterval)
-      state.streamingInterval = null
-    }
-  }
-
   const ensureContainer = () => {
-    if (dom.container) return
+    if (dom.root) return
 
     const container = document.createElement('div')
-    container.className = 'sirch-popsearch-overlay'
+    container.className = 'sirch-ext-scope'
     container.innerHTML = `
-      <div class="sirch-popsearch-backdrop"></div>
-      <div class="sirch-popsearch-shell" role="dialog" aria-modal="true">
-        <div class="sirch-popsearch-panel">
-          <div class="sirch-input-wrapper">
-            <input type="text" class="sirch-input" placeholder="Search Sirch..." autocomplete="off" />
+      <div class="fixed inset-0 z-50 flex items-center hidden" data-sirch-overlay>
+        <div class="absolute inset-0 backdrop-blur-sm" data-sirch-backdrop></div>
+        <div class="flex items-start" style="margin-left: calc((100vw - 640px) / 3)">
+          <div class="relative bg-white rounded shadow-xl border border-gray-200 w-[640px] h-[480px] max-w-[90vw] overflow-hidden flex flex-col">
+            <div class="absolute w-4 h-px bg-black z-10" style="top: 150px; right: 0;"></div>
+            <div class="py-1.5 px-3 flex-1 flex flex-col overflow-hidden">
+              <div class="relative mt-0.5 mb-2 h-8">
+                <div class="absolute top-0 left-0 right-0 flex items-center gap-2 overflow-x-auto scrollbar-hide" data-sirch-domains></div>
+              </div>
+              <div class="mb-1 relative">
+                <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Human centric search, powered by AI"
+                  class="w-full pl-10 pr-4 py-3 text-sm bg-black text-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 transition-colors placeholder-gray-400"
+                  data-sirch-input
+                />
+              </div>
+              <div class="flex-1 flex flex-col overflow-hidden">
+                <div class="flex-1 overflow-y-auto" data-sirch-suggestions></div>
+                <div class="mt-4 pt-4 border-t border-gray-100 hidden" data-sirch-results-wrapper>
+                  <div class="space-y-3" data-sirch-results></div>
+                  <div class="text-xs text-gray-400 pt-2" data-sirch-results-empty hidden>No results yet. Type a query and press Enter.</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="sirch-domain-row"></div>
-          <div class="sirch-suggestions"></div>
-          <div class="sirch-results" hidden>
-            <div class="sirch-results-empty" hidden>No results yet. Type a query and press Enter.</div>
-            <div class="sirch-results-list"></div>
+          <div class="relative bg-white border border-gray-100 shadow-sm w-80 h-80 p-4 flex flex-col ml-6">
+            <div class="text-sm text-black leading-tight overflow-hidden flex-1" data-sirch-popbox></div>
+            <div class="mt-4 pt-4 border-t border-gray-100">
+              <div class="text-xs text-gray-400">hit Tab for this rabbit hole</div>
+            </div>
           </div>
-        </div>
-        <div class="sirch-popbox-panel">
-          <div class="sirch-popbox-title">PopBox</div>
-          <div class="sirch-popbox-content"></div>
         </div>
       </div>
     `
 
     document.body.appendChild(container)
 
-    dom.container = container
-    dom.backdrop = container.querySelector('.sirch-popsearch-backdrop')
-    dom.shell = container.querySelector('.sirch-popsearch-shell')
-    dom.input = container.querySelector('.sirch-input')
-    dom.suggestions = container.querySelector('.sirch-suggestions')
-    dom.domains = container.querySelector('.sirch-domain-row')
-    dom.popbox = container.querySelector('.sirch-popbox-content')
-    dom.results = container.querySelector('.sirch-results')
-    dom.resultsEmpty = container.querySelector('.sirch-results-empty')
-    dom.resultsList = container.querySelector('.sirch-results-list')
+    dom.root = container
+    dom.overlay = container.querySelector('[data-sirch-overlay]')
+    dom.backdrop = container.querySelector('[data-sirch-backdrop]')
+    dom.modalInput = container.querySelector('[data-sirch-input]')
+    dom.suggestions = container.querySelector('[data-sirch-suggestions]')
+    dom.domains = container.querySelector('[data-sirch-domains]')
+    dom.popbox = container.querySelector('[data-sirch-popbox]')
+    dom.resultsWrapper = container.querySelector('[data-sirch-results-wrapper]')
+    dom.resultsList = container.querySelector('[data-sirch-results]')
+    dom.resultsEmpty = container.querySelector('[data-sirch-results-empty]')
 
     dom.backdrop.addEventListener('click', closeOverlay)
-    dom.input.addEventListener('input', handleInput)
-    dom.input.addEventListener('keydown', handleKeyDown)
+    dom.modalInput.addEventListener('input', handleInput)
+    dom.modalInput.addEventListener('keydown', handleKeyDown)
+
+    dom.domains.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-domain]')
+      if (!button) return
+      const url = button.dataset.domain
+      if (url) {
+        window.open(url.startsWith('http') ? url : `https://${url}`, '_blank', 'noopener,noreferrer')
+        closeOverlay()
+      }
+    })
 
     dom.suggestions.addEventListener('mousemove', (event) => {
       const item = event.target.closest('[data-suggestion-index]')
@@ -123,8 +166,9 @@
       if (!Number.isNaN(index)) {
         state.highlightedSuggestion = index
         renderSuggestions()
-        if (state.suggestions[index]) {
-          debouncedFetchPopBox(state.suggestions[index])
+        const suggestion = state.suggestions[index]
+        if (suggestion) {
+          debouncedFetchPopBox(suggestion)
         }
       }
     })
@@ -137,44 +181,36 @@
       const suggestion = state.suggestions[index]
       if (!suggestion) return
       performSearch(suggestion)
-      closeOverlay()
-    })
-
-    dom.domains.addEventListener('click', (event) => {
-      const item = event.target.closest('[data-domain-url]')
-      if (!item) return
-      const url = item.dataset.domainUrl
-      if (url) {
-        window.open(url.startsWith('http') ? url : `https://${url}`, '_blank', 'noopener,noreferrer')
-        closeOverlay()
-      }
     })
   }
 
- const openOverlay = () => {
-   ensureContainer()
-   dom.container.classList.add('sirch-visible')
-   state.visible = true
+  const openOverlay = () => {
+    ensureContainer()
+    dom.overlay.classList.remove('hidden')
+    state.visible = true
+
     if (!state.currentInputValue) {
       state.highlightedSuggestion = state.suggestions.length ? 0 : -1
       if (state.suggestions[0]) {
         debouncedFetchPopBox(state.suggestions[0])
       }
     }
-    dom.input.value = state.currentInputValue || ''
+
+    dom.modalInput.value = state.currentInputValue || ''
     requestAnimationFrame(() => {
-      dom.input.focus({ preventScroll: true })
-      dom.input.select()
+      dom.modalInput.focus({ preventScroll: true })
+      dom.modalInput.select()
     })
+
+    renderDomains()
     renderSuggestions()
     renderPopBox()
-    renderDomains()
     renderResults()
   }
 
   const closeOverlay = () => {
-    if (!dom.container) return
-    dom.container.classList.remove('sirch-visible')
+    if (!dom.overlay) return
+    dom.overlay.classList.add('hidden')
     state.visible = false
     stopStreamingText()
   }
@@ -184,7 +220,7 @@
       closeOverlay()
     } else {
       openOverlay()
-      if (!state.currentInputValue) {
+      if (!state.suggestions.length) {
         fetchSuggestions('')
       }
     }
@@ -196,6 +232,7 @@
     state.searchQuery = value
     state.highlightedSuggestion = -1
     state.highlightedLogo = -1
+
     renderSuggestions()
     renderDomains()
     renderResults()
@@ -215,9 +252,23 @@
 
     if (key === 'Enter') {
       event.preventDefault()
-      const value = dom.input.value.trim()
-      if (value) {
-        performSearch(value)
+      if (state.highlightedLogo >= 0 && state.logos[state.highlightedLogo]) {
+        const selected = state.logos[state.highlightedLogo]
+        const rawDest = selected.domain || selected.url || ''
+        if (rawDest) {
+          const dest = rawDest.startsWith('http') ? rawDest : `https://${rawDest}`
+          window.open(dest, '_blank', 'noopener,noreferrer')
+          closeOverlay()
+          return
+        }
+      }
+
+      const query = state.highlightedSuggestion >= 0 && state.suggestions[state.highlightedSuggestion]
+        ? state.suggestions[state.highlightedSuggestion]
+        : (event.target.value || '').trim()
+
+      if (query) {
+        performSearch(query)
       }
       return
     }
@@ -226,7 +277,7 @@
       event.preventDefault()
       const direction = key === 'ArrowDown' ? 1 : -1
       const total = state.suggestions.length
-      if (total === 0) return
+      if (!total) return
       let next = state.highlightedSuggestion + direction
       if (next >= total) next = 0
       if (next < 0) next = total - 1
@@ -249,7 +300,6 @@
       if (next < 0) next = domains.length - 1
       state.highlightedLogo = next
       renderDomains()
-      return
     }
   }
 
@@ -257,22 +307,26 @@
     if (!dom.suggestions) return
     dom.suggestions.innerHTML = ''
 
-    const list = state.suggestions
     if (state.loadingSuggestions) {
-      dom.suggestions.innerHTML = '<div class="sirch-loading">Generating suggestions...</div>'
+      const loading = document.createElement('div')
+      loading.className = 'flex items-center justify-center py-8'
+      loading.innerHTML = '<div class="text-gray-400 text-sm">Generating suggestions...</div>'
+      dom.suggestions.appendChild(loading)
       return
     }
 
-    list.forEach((suggestion, index) => {
-      const item = document.createElement('button')
-      item.type = 'button'
-      item.className = `sirch-suggestion ${state.highlightedSuggestion === index ? 'sirch-suggestion-active' : ''}`
-      item.dataset.suggestionIndex = String(index)
-      item.innerHTML = `
-        <span class="sirch-suggestion-bullet">${state.highlightedSuggestion === index ? '•' : ''}</span>
-        <span class="sirch-suggestion-text">${suggestion}</span>
+    state.suggestions.forEach((suggestion, index) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.dataset.suggestionIndex = String(index)
+      button.className = `w-full flex items-center px-4 py-3 text-sm text-left rounded-lg transition-colors border-b border-gray-50 last:border-0 ${
+        state.highlightedSuggestion === index ? 'text-orange-500' : 'text-black'
+      }`
+      button.innerHTML = `
+        <span class="mr-3 w-4 text-right flex-shrink-0">${state.highlightedSuggestion === index ? '•' : '&nbsp;'}</span>
+        <span class="truncate">${escapeHTML(suggestion)}</span>
       `
-      dom.suggestions.appendChild(item)
+      dom.suggestions.appendChild(button)
     })
   }
 
@@ -281,20 +335,29 @@
     dom.domains.innerHTML = ''
 
     if (!state.logos.length) {
-      dom.domains.classList.remove('sirch-domain-row-visible')
+      dom.domains.classList.add('hidden')
       return
     }
 
-    dom.domains.classList.add('sirch-domain-row-visible')
+    dom.domains.classList.remove('hidden')
 
     state.logos.forEach((logo, index) => {
       const button = document.createElement('button')
       button.type = 'button'
-      button.className = `sirch-domain ${state.highlightedLogo === index ? 'sirch-domain-active' : ''}`
-      button.dataset.domainUrl = logo.domain.startsWith('http') ? logo.domain : `https://${logo.domain}`
+      const rawDomain = logo.domain || ''
+      if (rawDomain) {
+        button.dataset.domain = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
+      } else {
+        button.dataset.domain = ''
+      }
+      button.className = `flex items-center gap-1 px-3 py-1 text-xs rounded-full border transition-colors flex-shrink-0 ${
+        state.highlightedLogo === index
+          ? 'bg-orange-50 border-orange-200 text-orange-600'
+          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+      }`
       button.innerHTML = `
-        ${logo.logo_url ? `<img src="${logo.logo_url}" alt="${logo.name} logo" />` : ''}
-        <span>${logo.name}</span>
+        ${logo.logo_url ? `<img src="${escapeHTML(logo.logo_url)}" alt="${escapeHTML(logo.name)}" class="w-4 h-4 rounded-sm object-contain bg-white" />` : '<span class="text-xs">•</span>'}
+        <span class="capitalize">${escapeHTML(logo.name)}</span>
       `
       dom.domains.appendChild(button)
     })
@@ -302,8 +365,9 @@
 
   const renderPopBox = () => {
     if (!dom.popbox) return
+
     if (state.popboxLoading) {
-      dom.popbox.innerHTML = '<div class="sirch-popbox-loading">●</div>'
+      dom.popbox.innerHTML = '<span class="text-xl" style="animation: blink 1s infinite">•</span>'
       return
     }
 
@@ -312,23 +376,27 @@
   }
 
   const renderResults = () => {
-    if (!dom.results || !dom.resultsList || !dom.resultsEmpty) return
+    if (!dom.resultsWrapper || !dom.resultsList || !dom.resultsEmpty) return
 
     if (!state.searchQuery) {
-      dom.results.hidden = true
+      dom.resultsWrapper.classList.add('hidden')
+      dom.resultsEmpty.textContent = 'No results yet. Type a query and press Enter.'
+      dom.resultsEmpty.hidden = false
+      dom.resultsList.innerHTML = ''
       return
     }
 
-    dom.results.hidden = false
+    dom.resultsWrapper.classList.remove('hidden')
 
     if (state.searchLoading) {
-      dom.resultsList.innerHTML = '<div class="sirch-loading">Searching...</div>'
+      dom.resultsList.innerHTML = '<div class="text-center text-gray-400"><p class="text-sm">Searching...</p><p class="text-xs mt-2">Finding results for "' + escapeHTML(state.searchQuery) + '"</p></div>'
       dom.resultsEmpty.hidden = true
       return
     }
 
     if (!state.searchResults.length) {
       dom.resultsList.innerHTML = ''
+      dom.resultsEmpty.textContent = 'No results found. Try a different search term.'
       dom.resultsEmpty.hidden = false
       return
     }
@@ -336,18 +404,24 @@
     dom.resultsEmpty.hidden = true
     dom.resultsList.innerHTML = ''
 
-    state.searchResults.forEach((result) => {
-      const item = document.createElement('a')
-      item.className = 'sirch-result'
-      item.href = result.url || '#'
-      item.target = '_blank'
-      item.rel = 'noopener noreferrer'
-      item.innerHTML = `
-        <div class="sirch-result-title">${result.title || 'Untitled result'}</div>
-        ${result.description ? `<div class="sirch-result-description">${result.description.replace(/<[^>]*>/g, '')}</div>` : ''}
-        ${result.url ? `<div class="sirch-result-url">${result.url}</div>` : ''}
+    state.searchResults.forEach((result, index) => {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'py-3 border-b border-gray-50 last:border-0'
+      const title = escapeHTML(result.title || 'Untitled result')
+      const description = result.description ? escapeHTML(result.description.replace(/<[^>]*>/g, '')) : ''
+      const url = escapeHTML(result.url || '#')
+
+      wrapper.innerHTML = `
+        <div class="flex gap-3">
+          <span class="text-sm w-6 flex-shrink-0 text-right text-gray-500">${index + 1}</span>
+          <div class="flex-1 min-w-0">
+            <a href="${url || '#'}" target="_blank" rel="noopener noreferrer" class="text-base font-medium text-black hover:text-gray-600 truncate block">${title}</a>
+            ${description ? `<div class="text-xs mt-1 text-gray-400">${description}</div>` : ''}
+            ${result.url ? `<div class="text-xs mt-1 text-gray-300 break-words">${escapeHTML(result.url)}</div>` : ''}
+          </div>
+        </div>
       `
-      dom.resultsList.appendChild(item)
+      dom.resultsList.appendChild(wrapper)
     })
   }
 
@@ -418,7 +492,6 @@
     renderPopBox()
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300))
       const response = await fetch(`${API_BASE}/api/popbox-answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

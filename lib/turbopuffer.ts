@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio'
 // Initialize clients
 const turbopuffer = new Turbopuffer({
   apiKey: process.env.TURBOPUFFER_API_KEY || '',
+  region: process.env.TURBOPUFFER_REGION || 'us-east-1',
 })
 
 const openai = new OpenAI({
@@ -79,9 +80,11 @@ export class TurboPufferService {
         include_attributes: true,
       })
 
+      const resultArray = Array.isArray(results) ? results : results.rows || []
+
       return {
         success: true,
-        results: (results.rows || results).map((match: any) => ({
+        results: resultArray.map((match: any) => ({
           id: match.id,
           score: match.$dist || match.dist,
           url: match.attributes?.url || match.url,
@@ -138,12 +141,17 @@ export class TurboPufferService {
    */
   static async extractPageContent(url: string): Promise<string> {
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; Sirch-AI/1.0)',
         },
-        timeout: 10000, // 10 second timeout
+        signal: controller.signal,
       })
+
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
