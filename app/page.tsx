@@ -595,6 +595,10 @@ export default function HackerNewsClient() {
     const getSession = async () => {
       try {
         console.log('[AUTH] Getting initial session...')
+        console.log('[AUTH] Supabase client config:', {
+          url: supabase.supabaseUrl,
+          key: supabase.supabaseKey?.substring(0, 20) + '...'
+        })
         const { data: { session }, error } = await supabase.auth.getSession()
 
         if (error) {
