@@ -119,88 +119,63 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         </a>
       </div>
 
-      {/* Profile Header */}
-      <div className="pt-20 pb-8 px-6 text-center border-b border-gray-100">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">@{username}</h1>
-        {data.profile.display_name && (
-          <p className="text-lg text-gray-600 mb-2">{data.profile.display_name}</p>
-        )}
-        {data.profile.bio && (
-          <p className="text-gray-500 max-w-2xl mx-auto">{data.profile.bio}</p>
-        )}
-        <div className="mt-4 text-sm text-gray-400">
-          {data.total_count} saved page{data.total_count !== 1 ? 's' : ''}
+      {/* Main content container matching main page */}
+      <main className="max-w-2xl mx-auto pt-16 pb-8 px-6">
+        {/* Profile Header - minimal like main page */}
+        <div className="mb-6 pb-4 border-b border-gray-100">
+          <h1 className="text-2xl font-semibold text-gray-800 mb-1">@{username}</h1>
+          {data.profile.display_name && (
+            <p className="text-gray-600 mb-1">{data.profile.display_name}</p>
+          )}
+          <div className="text-sm text-gray-400">
+            {data.total_count} saved page{data.total_count !== 1 ? 's' : ''}
+          </div>
         </div>
-      </div>
 
-      {/* Saved Pages List */}
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="space-y-4">
-          {data.saved_pages.map((page: SavedPage, index: number) => (
-            <div
-              key={page.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-mono text-gray-400">
-                      #{index + 1}
-                    </span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded font-mono">
-                      {getWebsiteName(page.url)}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {formatTimeAgo(page.saved_at)}
-                    </span>
-                  </div>
+        {/* Saved Pages List - exactly like main page stories */}
+        {data.saved_pages.map((page: SavedPage, index: number) => (
+          <div
+            key={page.id}
+            className="py-3 border-b border-gray-50 last:border-0"
+          >
+            <div className="flex gap-3">
+              <span className="text-sm w-6 flex-shrink-0 text-right text-gray-500">
+                {index + 1}
+              </span>
 
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">
-                    {page.title || 'Untitled Page'}
-                  </h3>
+              {/* Heart icon placeholder (no functionality) */}
+              <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+                <svg className="w-3 h-3 text-red-500" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
 
-                  {page.description && (
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-3">
-                      {page.description}
-                    </p>
-                  )}
-
+              <div className="flex-1 min-w-0">
+                <h2 className="leading-snug text-black">
                   <a
                     href={page.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-orange-600 hover:text-orange-700 text-sm font-medium transition-colors inline-flex items-center gap-1"
+                    className="hover:text-gray-600"
                   >
-                    Visit page
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
+                    {page.title || 'Untitled Page'}
                   </a>
-                </div>
+                </h2>
 
-                {page.thumbnail_url && (
-                  <div className="flex-shrink-0">
-                    <img
-                      src={page.thumbnail_url}
-                      alt="Page thumbnail"
-                      className="w-16 h-16 object-cover rounded border border-gray-200"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  </div>
-                )}
+                <div className="text-xs mt-1 text-gray-400">
+                  {getWebsiteName(page.url)} • {formatTimeAgo(page.saved_at)}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
 
         {data.total_count >= 100 && (
           <div className="mt-8 text-center text-gray-500 text-sm">
             Showing the most recent 100 saved pages
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }
