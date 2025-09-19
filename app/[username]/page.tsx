@@ -262,7 +262,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         {/* Profile Header - conditional based on ownership */}
         {isOwnProfile ? (
           <>
-            {/* AI Search for own profile */}
+            {/* AI Search interface for own profile */}
             <div className="mb-6">
               <div className="text-lg font-medium text-gray-800 mb-3">Search my stuff with AI</div>
               <div className="relative">
