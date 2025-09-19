@@ -44,9 +44,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get full saved page details from database for the results
-    const resultIds = searchResult.results.map(r => r.id).filter(Boolean)
+    const resultIds = searchResult.results.map((r: any) => r.id).filter(Boolean)
 
-    let fullResults = []
+    let fullResults: any[] = []
     if (resultIds.length > 0) {
       const { data: savedPages } = await supabaseAdmin
         .from('saved_pages')
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
 
       if (savedPages) {
         // Merge search results with full page data
-        fullResults = searchResult.results.map(searchRes => {
-          const fullPage = savedPages.find(page => page.id === searchRes.id)
+        fullResults = searchResult.results.map((searchRes: any) => {
+          const fullPage = savedPages.find((page: any) => page.id === searchRes.id)
           return {
             ...searchRes,
             ...fullPage,
