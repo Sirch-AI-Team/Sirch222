@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { supabase } from '../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function DELETE(
   request: NextRequest,
@@ -18,27 +18,27 @@ export async function DELETE(
       return Response.json({ error: 'Authorization required' }, { status: 401 })
     }
 
-    const token = authHeader.substring(7)
+    const token = authHeader.replace('Bearer ', '').trim()
 
-    // Set the auth token for this request
-    await supabase.auth.setSession({
-      access_token: token,
-      refresh_token: '' // Not needed for this operation
-    })
-
-    // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    // Validate token and get user ID
+    let userId: string | null = null
+    try {
+      const { data: userData } = await supabaseAdmin.auth.getUser(token)
+      userId = userData?.user?.id || null
+    } catch {
       return Response.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Delete the saved page (RLS will ensure user can only delete their own pages)
-    const { error: deleteError } = await supabase
+    if (!userId) {
+      return Response.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    // Delete the saved page
+    const { error: deleteError } = await supabaseAdmin
       .from('saved_pages')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id) // Extra security check
+      .eq('user_id', userId)
 
     if (deleteError) {
       console.error('Error deleting saved page:', deleteError)
