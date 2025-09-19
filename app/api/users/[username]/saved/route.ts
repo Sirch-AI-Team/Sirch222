@@ -13,8 +13,15 @@ export async function GET(
     }
 
     // First, check if the user profile exists and is public
+    console.log('[DEBUG] Checking profile for username:', username)
     const { data: profile, error: profileError } = await supabaseAdmin
       .rpc('get_profile_by_username', { username_param: username })
+
+    console.log('[DEBUG] Profile result:', {
+      profileData: profile,
+      profileError: profileError?.message,
+      profileCount: profile?.length
+    })
 
     if (profileError) {
       console.error('Profile lookup error:', profileError)
