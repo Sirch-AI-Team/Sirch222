@@ -73,4 +73,5 @@ export type UserSavedPagesResponse = {
   }
   saved_pages: SavedPage[]
   total_count: number
+  is_owner?: boolean
 }

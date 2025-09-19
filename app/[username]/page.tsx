@@ -32,7 +32,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       if (currentUser) {
         // Get current user's username
         const { data: profile } = await supabase
-          .from('users')
+          .from('profiles')
           .select('username')
           .eq('id', currentUser.id)
           .single()
@@ -52,7 +52,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
       if (currentUser) {
         const { data: profile } = await supabase
-          .from('users')
+          .from('profiles')
           .select('username')
           .eq('id', currentUser.id)
           .single()
@@ -76,7 +76,14 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         setLoading(true)
         setError(null)
 
-        const response = await fetch(`/api/users/${username}/saved`)
+        const { data: { session } } = await supabase.auth.getSession()
+        const headers: HeadersInit = {}
+        const token = session?.access_token
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+
+        const response = await fetch(`/api/users/${username}/saved`, { headers })
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -89,6 +96,13 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
         const result = await response.json()
         setData(result)
+
+        if (typeof result.is_owner === 'boolean') {
+          setIsOwnProfile(result.is_owner)
+          if (result.is_owner) {
+            setCurrentUserUsername(prev => prev ?? result.profile.username)
+          }
+        }
       } catch (err) {
         setError('Failed to load user profile')
         console.error('Error fetching user data:', err)
@@ -332,7 +346,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                 className={`flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors ${
                   deletingPages.has(page.id) || savingPages.has(page.url)
                     ? "text-gray-400"
-                    : isOwnProfile
+                    : isViewingOwnProfile
                       ? "text-gray-400 hover:text-red-500"
                       : "text-gray-400 hover:text-red-500"
                 }`}
@@ -343,7 +357,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
                     <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                   </svg>
-                ) : isOwnProfile ? (
+                ) : isViewingOwnProfile ? (
                   // Garbage can icon for own profile
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

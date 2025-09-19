@@ -566,14 +566,20 @@ export default function HackerNewsClient() {
 
       // Get user's profile to find their username, then get their saved pages
       const { data: profile } = await supabase
-        .from('users')
+        .from('profiles')
         .select('username')
         .eq('id', user.id)
         .single()
 
       if (profile?.username) {
         setUsername(profile.username)
-        const response = await fetch(`/api/users/${profile.username}/saved`)
+        const headers: HeadersInit = {}
+        const token = session?.access_token
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+
+        const response = await fetch(`/api/users/${profile.username}/saved`, { headers })
         if (response.ok) {
           const data = await response.json()
           const urls = new Set<string>(data.saved_pages?.map((page: any) => page.url).filter((url: any) => typeof url === 'string') || [])
