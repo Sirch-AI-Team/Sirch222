@@ -15,14 +15,34 @@ export async function GET(
     let viewerUserId: string | null = null
 
     const authHeader = request.headers.get('authorization')
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '').trim()
-      if (token) {
-        const { data: viewerData, error: viewerError } = await supabaseAdmin.auth.getUser(token)
-        if (viewerError) {
-          console.error('Viewer token validation error:', viewerError)
-        } else if (viewerData?.user) {
-          viewerUserId = viewerData.user.id
+    const token = authHeader?.startsWith('Bearer ')
+      ? authHeader.replace('Bearer ', '').trim()
+      : null
+
+    if (token) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.warn('Supabase URL or anon key missing; cannot validate viewer token')
+      } else {
+        try {
+          const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+            headers: {
+              apikey: supabaseAnonKey,
+              Authorization: `Bearer ${token}`
+            }
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            viewerUserId = result?.id ?? null
+          } else if (response.status !== 401 && response.status !== 403) {
+            const errorText = await response.text()
+            console.error('Viewer token validation failed:', response.status, errorText)
+          }
+        } catch (viewerError) {
+          console.error('Failed to validate viewer token:', viewerError)
         }
       }
     }
