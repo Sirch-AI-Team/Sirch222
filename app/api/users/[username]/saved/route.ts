@@ -32,26 +32,18 @@ export async function GET(
       return Response.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Check if they have a public profile
+    // Get profile info (all profiles are public)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('display_name, bio, avatar_url, is_public')
+      .select('display_name, bio, avatar_url')
       .eq('id', user.id)
       .single()
-
-    // If no profile exists or it's private, still show public info but limited
-    const isPublic = profile?.is_public !== false // Default to public if no profile exists
 
     console.log('[DEBUG] Profile result:', {
       user: user,
       profile: profile,
-      isPublic: isPublic,
       profileError: profileError?.message
     })
-
-    if (!isPublic) {
-      return Response.json({ error: 'Profile is private' }, { status: 404 })
-    }
 
     // Get the user's saved pages (newest 100) - direct query
     const { data: savedPages, error: savedPagesError } = await supabaseAdmin
