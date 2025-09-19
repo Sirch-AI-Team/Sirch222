@@ -5,7 +5,7 @@ import * as cheerio from 'cheerio'
 // Initialize clients
 const turbopuffer = new Turbopuffer({
   apiKey: process.env.TURBOPUFFER_API_KEY || '',
-  region: process.env.TURBOPUFFER_REGION || 'us-east-1',
+  baseURL: 'https://api.turbopuffer.com',
 })
 
 const openai = new OpenAI({
