@@ -593,17 +593,27 @@ export default function HackerNewsClient() {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
-      console.log('[AUTH] Getting initial session...')
-      const { data: { session } } = await supabase.auth.getSession()
-      const user = session?.user ?? null
-      console.log('[AUTH] Initial session result:', {
-        hasSession: !!session,
-        hasUser: !!user,
-        userEmail: user?.email
-      })
-      setUser(user)
-      if (user) {
-        loadSavedPages(user)
+      try {
+        console.log('[AUTH] Getting initial session...')
+        const { data: { session }, error } = await supabase.auth.getSession()
+
+        if (error) {
+          console.error('[AUTH] Session error:', error)
+          return
+        }
+
+        const user = session?.user ?? null
+        console.log('[AUTH] Initial session result:', {
+          hasSession: !!session,
+          hasUser: !!user,
+          userEmail: user?.email
+        })
+        setUser(user)
+        if (user) {
+          loadSavedPages(user)
+        }
+      } catch (error) {
+        console.error('[AUTH] Exception getting session:', error)
       }
     }
     getSession()
