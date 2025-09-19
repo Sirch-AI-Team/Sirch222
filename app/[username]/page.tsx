@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { UserSavedPagesResponse, SavedPage } from "../../lib/supabase"
+import { supabase } from "../../lib/supabase"
+import { User } from "@supabase/supabase-js"
 
 interface UserProfilePageProps {
   params: { username: string }
@@ -11,7 +13,60 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const [data, setData] = useState<UserSavedPagesResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [currentUserUsername, setCurrentUserUsername] = useState<string | null>(null)
+  const [isOwnProfile, setIsOwnProfile] = useState(false)
+  const [deletingPages, setDeletingPages] = useState<Set<string>>(new Set())
+  const [savingPages, setSavingPages] = useState<Set<string>>(new Set())
   const { username } = params
+
+  // Auth effect
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+
+      if (currentUser) {
+        // Get current user's username
+        const { data: profile } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', currentUser.id)
+          .single()
+
+        if (profile?.username) {
+          setCurrentUserUsername(profile.username)
+          setIsOwnProfile(profile.username === username)
+        }
+      }
+    }
+    getSession()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+
+      if (currentUser) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', currentUser.id)
+          .single()
+
+        if (profile?.username) {
+          setCurrentUserUsername(profile.username)
+          setIsOwnProfile(profile.username === username)
+        }
+      } else {
+        setCurrentUserUsername(null)
+        setIsOwnProfile(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [username])
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -68,6 +123,71 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     }
   }
 
+  const handleDeletePage = async (pageId: string, url: string) => {
+    if (!user || !isOwnProfile) return
+
+    setDeletingPages(prev => new Set(prev).add(pageId))
+
+    try {
+      const response = await fetch(`/api/saved-pages/${pageId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Remove from local state
+        setData(prev => prev ? {
+          ...prev,
+          saved_pages: prev.saved_pages.filter(page => page.id !== pageId),
+          total_count: prev.total_count - 1
+        } : null)
+      } else {
+        console.error('Failed to delete page')
+      }
+    } catch (error) {
+      console.error('Error deleting page:', error)
+    } finally {
+      setDeletingPages(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(pageId)
+        return newSet
+      })
+    }
+  }
+
+  const handleSavePage = async (url: string, title?: string, description?: string) => {
+    if (!user || isOwnProfile) return
+
+    setSavingPages(prev => new Set(prev).add(url))
+
+    try {
+      const response = await fetch('/api/saved-pages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          title,
+          description,
+        }),
+      })
+
+      if (response.ok) {
+        console.log('Page saved successfully')
+      } else {
+        console.error('Failed to save page')
+      }
+    } catch (error) {
+      console.error('Error saving page:', error)
+    } finally {
+      setSavingPages(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(url)
+        return newSet
+      })
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -121,15 +241,32 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
       {/* Main content container matching main page */}
       <main className="max-w-2xl mx-auto pt-16 pb-8 px-6">
-        {/* Profile Header - minimal like main page */}
+        {/* Profile Header - conditional based on ownership */}
         <div className="mb-6 pb-4 border-b border-gray-100">
-          <h1 className="text-2xl font-semibold text-gray-800 mb-1">@{username}</h1>
-          {data.profile.display_name && (
-            <p className="text-gray-600 mb-1">{data.profile.display_name}</p>
+          {isOwnProfile ? (
+            <>
+              <h1 className="text-2xl font-semibold text-gray-800 mb-1">My Profile</h1>
+              <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors mb-2">
+                📋 share a link with friends
+              </button>
+              <div className="text-sm text-gray-400">
+                {data.total_count} saved page{data.total_count !== 1 ? 's' : ''}
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-semibold text-gray-800 mb-1">@{username}</h1>
+              {data.profile.display_name && (
+                <p className="text-gray-600 mb-1">{data.profile.display_name}</p>
+              )}
+              <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors mb-2 px-3 py-1 border border-blue-200 rounded-md">
+                Subscribe
+              </button>
+              <div className="text-sm text-gray-400">
+                {data.total_count} saved page{data.total_count !== 1 ? 's' : ''}
+              </div>
+            </>
           )}
-          <div className="text-sm text-gray-400">
-            {data.total_count} saved page{data.total_count !== 1 ? 's' : ''}
-          </div>
         </div>
 
         {/* Saved Pages List - exactly like main page stories */}
@@ -143,12 +280,43 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                 {index + 1}
               </span>
 
-              {/* Heart icon placeholder (no functionality) */}
-              <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-                <svg className="w-3 h-3 text-red-500" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </div>
+              {/* Action button - garbage can for own profile, heart for others */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (isOwnProfile) {
+                    handleDeletePage(page.id, page.url)
+                  } else {
+                    handleSavePage(page.url, page.title, page.description)
+                  }
+                }}
+                disabled={deletingPages.has(page.id) || savingPages.has(page.url)}
+                className={`flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors ${
+                  deletingPages.has(page.id) || savingPages.has(page.url)
+                    ? "text-gray-400"
+                    : isOwnProfile
+                      ? "text-gray-400 hover:text-red-500"
+                      : "text-gray-400 hover:text-red-500"
+                }`}
+                title={isOwnProfile ? "Delete page" : "Save page"}
+              >
+                {deletingPages.has(page.id) || savingPages.has(page.url) ? (
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
+                    <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  </svg>
+                ) : isOwnProfile ? (
+                  // Garbage can icon for own profile
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                ) : (
+                  // Empty heart icon for other profiles
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                )}
+              </button>
 
               <div className="flex-1 min-w-0">
                 <h2 className="leading-snug text-black">
