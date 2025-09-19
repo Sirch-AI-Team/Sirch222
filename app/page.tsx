@@ -593,8 +593,14 @@ export default function HackerNewsClient() {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
+      console.log('[AUTH] Getting initial session...')
       const { data: { session } } = await supabase.auth.getSession()
       const user = session?.user ?? null
+      console.log('[AUTH] Initial session result:', {
+        hasSession: !!session,
+        hasUser: !!user,
+        userEmail: user?.email
+      })
       setUser(user)
       if (user) {
         loadSavedPages(user)
@@ -603,7 +609,13 @@ export default function HackerNewsClient() {
     getSession()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[AUTH] Auth state change:', {
+        event,
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userEmail: session?.user?.email
+      })
       const user = session?.user ?? null
       setUser(user)
       if (user) {
@@ -760,7 +772,13 @@ export default function HackerNewsClient() {
           {/* Auth Menu Dropdown */}
           {showAuthMenu && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-              {user ? (
+              {(() => {
+                console.log('[RENDER] Auth menu rendering. User state:', {
+                  hasUser: !!user,
+                  userEmail: user?.email,
+                  username: username
+                })
+                return user ? (
                 <>
                   {/* Profile Header */}
                   <a
@@ -815,7 +833,8 @@ export default function HackerNewsClient() {
                 >
                   Sign In / Sign Up
                 </a>
-              )}
+              )
+              })()}
             </div>
           )}
         </div>
