@@ -73,24 +73,22 @@ export class TurboPufferService {
       const queryVector = await this.generateEmbedding(query)
 
       const results = await ns.query({
-        vector: queryVector,
+        rank_by: ['vector', 'ANN', queryVector],
         top_k: limit,
-        filters: {
-          user_id: userId, // Only search this user's saved pages
-        } as any,
+        filters: ['user_id', 'Eq', userId], // Only search this user's saved pages
         include_attributes: true,
       })
 
       return {
         success: true,
-        results: results.map((match: any) => ({
+        results: (results.rows || results).map((match: any) => ({
           id: match.id,
-          score: match.dist,
-          url: match.attributes?.url,
-          title: match.attributes?.title,
-          content: match.attributes?.content,
-          domain: match.attributes?.domain,
-          saved_at: match.attributes?.saved_at,
+          score: match.$dist || match.dist,
+          url: match.attributes?.url || match.url,
+          title: match.attributes?.title || match.title,
+          content: match.attributes?.content || match.content,
+          domain: match.attributes?.domain || match.domain,
+          saved_at: match.attributes?.saved_at || match.saved_at,
         })),
       }
     } catch (error) {
