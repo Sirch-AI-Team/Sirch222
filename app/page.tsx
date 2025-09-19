@@ -49,6 +49,7 @@ export default function HackerNewsClient() {
   const [savedPages, setSavedPages] = useState<Set<string>>(new Set())
   const [savingPages, setSavingPages] = useState<Set<string>>(new Set())
   const [username, setUsername] = useState<string | null>(null)
+  const [subscriptions, setSubscriptions] = useState<string[]>([]) // List of usernames user is subscribed to
 
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
@@ -578,6 +579,10 @@ export default function HackerNewsClient() {
           const urls = new Set<string>(data.saved_pages?.map((page: any) => page.url).filter((url: any) => typeof url === 'string') || [])
           setSavedPages(urls)
         }
+
+        // Load user's subscriptions (placeholder for now)
+        // TODO: Implement actual subscription API
+        setSubscriptions([]) // Empty for now, will be populated with actual subscriptions later
       }
     } catch (error) {
       console.error('Error loading saved pages:', error)
@@ -606,6 +611,7 @@ export default function HackerNewsClient() {
       } else {
         setSavedPages(new Set())
         setUsername(null)
+        setSubscriptions([])
       }
     })
 
@@ -756,25 +762,50 @@ export default function HackerNewsClient() {
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
               {user ? (
                 <>
-                  <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-100">
-                    {user.email}
-                  </div>
+                  {/* Profile Header */}
                   <a
                     href={username ? `/${username}` : '/auth'}
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-medium"
                     onClick={() => setShowAuthMenu(false)}
                   >
                     Profile
                   </a>
-                  <button
-                    onClick={async () => {
-                      await supabase.auth.signOut()
-                      setShowAuthMenu(false)
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+
+                  {/* Divider */}
+                  <div className="border-t border-gray-100 my-1"></div>
+
+                  {/* Subscriptions Section */}
+                  <div className="px-4 py-1 text-xs text-gray-500 uppercase tracking-wide">
+                    Subscriptions
+                  </div>
+                  {subscriptions.length > 0 ? (
+                    subscriptions.map((subscribedUsername) => (
+                      <a
+                        key={subscribedUsername}
+                        href={`/${subscribedUsername}`}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setShowAuthMenu(false)}
+                      >
+                        @{subscribedUsername}
+                      </a>
+                    ))
+                  ) : (
+                    <div className="px-4 py-2 text-sm text-gray-400 italic">
+                      No subscriptions yet
+                    </div>
+                  )}
+
+                  {/* Divider */}
+                  <div className="border-t border-gray-100 my-1"></div>
+
+                  {/* Settings */}
+                  <a
+                    href="/auth"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setShowAuthMenu(false)}
                   >
-                    Sign Out
-                  </button>
+                    Settings
+                  </a>
                 </>
               ) : (
                 <a
