@@ -338,14 +338,15 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
               <div className="flex-1 min-w-0">
                 <h2 className="leading-snug text-black">
-                  <a
-                    href={page.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-gray-600"
+                  <button
+                    onClick={() => {
+                      console.log('Opening URL:', page.url)
+                      window.open(page.url, '_blank', 'noopener,noreferrer')
+                    }}
+                    className="text-left hover:text-gray-600 transition-colors"
                   >
                     {page.title || 'Untitled Page'}
-                  </a>
+                  </button>
                 </h2>
 
                 <div className="text-xs mt-1 text-gray-400">
