@@ -1,4 +1,4 @@
-import Turbopuffer from '@turbopuffer/turbopuffer'
+import { Turbopuffer } from '@turbopuffer/turbopuffer'
 import OpenAI from 'openai'
 import * as cheerio from 'cheerio'
 
@@ -38,11 +38,14 @@ export class TurboPufferService {
     savedAt: string
   ) {
     try {
-      const vectors = [
-        {
-          id: pageId,
-          vector: await this.generateEmbedding(content),
-          attributes: {
+      const ns = turbopuffer.namespace(SAVED_PAGES_NAMESPACE)
+      const embedding = await this.generateEmbedding(content)
+
+      await ns.write({
+        upsert_rows: [
+          {
+            id: pageId,
+            vector: embedding,
             user_id: userId,
             url: url,
             title: title,
@@ -50,12 +53,8 @@ export class TurboPufferService {
             domain: domain,
             saved_at: savedAt,
           },
-        },
-      ]
-
-      await turbopuffer.vectors.upsert({
-        namespace: SAVED_PAGES_NAMESPACE,
-        vectors: vectors,
+        ],
+        distance_metric: 'cosine_distance',
       })
 
       return { success: true }
@@ -70,10 +69,10 @@ export class TurboPufferService {
    */
   static async searchSavedPages(userId: string, query: string, limit: number = 10) {
     try {
+      const ns = turbopuffer.namespace(SAVED_PAGES_NAMESPACE)
       const queryVector = await this.generateEmbedding(query)
 
-      const results = await turbopuffer.vectors.query({
-        namespace: SAVED_PAGES_NAMESPACE,
+      const results = await ns.query({
         vector: queryVector,
         top_k: limit,
         filters: {
@@ -84,9 +83,9 @@ export class TurboPufferService {
 
       return {
         success: true,
-        results: results.matches.map((match) => ({
+        results: results.map((match: any) => ({
           id: match.id,
-          score: match.distance,
+          score: match.dist,
           url: match.attributes?.url,
           title: match.attributes?.title,
           content: match.attributes?.content,
@@ -105,9 +104,10 @@ export class TurboPufferService {
    */
   static async removeSavedPage(pageId: string) {
     try {
-      await turbopuffer.vectors.delete({
-        namespace: SAVED_PAGES_NAMESPACE,
-        ids: [pageId],
+      const ns = turbopuffer.namespace(SAVED_PAGES_NAMESPACE)
+
+      await ns.write({
+        deletes: [pageId],
       })
 
       return { success: true }

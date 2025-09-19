@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Sirch PopSearch",
+  "description": "Quickly access Sirch suggestions, answers, and web results from any page.",
+  "version": "0.1.0",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://sirch.ai/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "toggle-popsearch": {
+      "suggested_key": {
+        "default": "Ctrl+K",
+        "mac": "Command+K"
+      },
+      "description": "Toggle Sirch PopSearch overlay"
+    }
+  },
+  "action": {
+    "default_title": "Sirch PopSearch"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
