@@ -259,11 +259,11 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         </a>
       </div>
 
-      {/* Mine indicator for own profile */}
+      {/* Share indicator for own profile */}
       {isViewingOwnProfile && (
         <div className="fixed top-6 right-6 z-40">
           <div className="px-4 py-2 text-sm text-gray-800 font-semibold bg-gray-100 rounded-md">
-            Mine
+            Share with my closest friends
           </div>
         </div>
       )}
