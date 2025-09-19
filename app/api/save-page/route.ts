@@ -57,11 +57,18 @@ export async function POST(request: NextRequest) {
 
     // Index the page content in TurboPuffer for AI search
     try {
+      console.log('Starting TurboPuffer indexing for:', url)
+      console.log('Environment check - TURBOPUFFER_API_KEY exists:', !!process.env.TURBOPUFFER_API_KEY)
+      console.log('Environment check - OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY)
+
       const pageContent = await TurboPufferService.extractPageContent(url)
+      console.log('Extracted content length:', pageContent.length)
+
       const searchableContent = `${title || ''} ${description || ''} ${pageContent}`.trim()
+      console.log('Searchable content length:', searchableContent.length)
 
       if (searchableContent) {
-        await TurboPufferService.indexSavedPage(
+        const result = await TurboPufferService.indexSavedPage(
           savedPage.id,
           user.id,
           url,
@@ -70,10 +77,18 @@ export async function POST(request: NextRequest) {
           domain,
           savedPage.saved_at
         )
-        console.log('Page indexed in TurboPuffer for AI search')
+        console.log('TurboPuffer indexing result:', result)
+
+        if (result.success) {
+          console.log('✅ Page successfully indexed in TurboPuffer')
+        } else {
+          console.log('❌ TurboPuffer indexing failed:', result.error)
+        }
+      } else {
+        console.log('⚠️ No searchable content to index')
       }
     } catch (error) {
-      console.error('Error indexing page in TurboPuffer:', error)
+      console.error('❌ Error indexing page in TurboPuffer:', error)
       // Don't fail the save operation if indexing fails
     }
 
