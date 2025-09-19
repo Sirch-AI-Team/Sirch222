@@ -4,6 +4,15 @@ import TurboPufferService from '../../../lib/turbopuffer'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if TurboPuffer is configured
+    if (!process.env.TURBOPUFFER_API_KEY || !process.env.OPENAI_API_KEY) {
+      console.error('Missing required environment variables for search')
+      return Response.json({
+        error: 'Search service not configured',
+        results: []
+      }, { status: 200 }) // Return empty results instead of error
+    }
+
     const { query, limit = 10 } = await request.json()
 
     if (!query || query.trim().length === 0) {
@@ -40,7 +49,22 @@ export async function POST(request: NextRequest) {
 
     if (!searchResult.success) {
       console.error('TurboPuffer search error:', searchResult.error)
-      return Response.json({ error: 'Search failed' }, { status: 500 })
+      // Fallback to simple database search
+      const { data: fallbackResults } = await supabaseAdmin
+        .from('saved_pages')
+        .select('id, url, title, description, thumbnail_url, domain, saved_at')
+        .eq('user_id', userId)
+        .or(`title.ilike.%${query.trim()}%,description.ilike.%${query.trim()}%`)
+        .order('saved_at', { ascending: false })
+        .limit(Math.min(limit, 50))
+
+      return Response.json({
+        success: true,
+        query: query.trim(),
+        results: fallbackResults || [],
+        total_count: fallbackResults?.length || 0,
+        error: 'Using basic search (AI search temporarily unavailable)'
+      }, { status: 200 })
     }
 
     // Get full saved page details from database for the results
