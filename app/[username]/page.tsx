@@ -18,6 +18,13 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const [isOwnProfile, setIsOwnProfile] = useState(false)
   const [deletingPages, setDeletingPages] = useState<Set<string>>(new Set())
   const [savingPages, setSavingPages] = useState<Set<string>>(new Set())
+
+  // AI Search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SavedPage[]>([])
+  const [searching, setSearching] = useState(false)
+  const [showingSearchResults, setShowingSearchResults] = useState(false)
+
   const { username } = params
 
   const isViewingOwnProfile = isOwnProfile || (currentUserUsername !== null && currentUserUsername === username)
@@ -202,6 +209,49 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     }
   }
 
+  const handleAISearch = async () => {
+    if (!searchQuery.trim() || !user) return
+
+    setSearching(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        console.error('No session available for search')
+        return
+      }
+
+      const response = await fetch('/api/search-saved-pages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          query: searchQuery.trim(),
+          limit: 20,
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setSearchResults(result.results || [])
+        setShowingSearchResults(true)
+      } else {
+        console.error('Search failed:', response.status)
+      }
+    } catch (error) {
+      console.error('Error searching:', error)
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const clearSearch = () => {
+    setSearchQuery('')
+    setSearchResults([])
+    setShowingSearchResults(false)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -273,13 +323,37 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
               <div className="relative">
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAISearch()}
                   placeholder="Ask AI about your saved content..."
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
+                  disabled={searching}
                 />
-                <button className="absolute right-3 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
-                  Ask AI
+                <button
+                  onClick={handleAISearch}
+                  disabled={searching || !searchQuery.trim()}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {searching ? 'Searching...' : 'Ask AI'}
                 </button>
               </div>
+
+              {showingSearchResults && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm text-gray-600">
+                      Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
+                    </div>
+                    <button
+                      onClick={clearSearch}
+                      className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      Show all pages
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="border-b border-gray-200 mb-6"></div>
           </div>
@@ -301,8 +375,8 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           </div>
         )}
 
-        {/* Saved Pages List - exactly like main page stories */}
-        {data.saved_pages.map((page: SavedPage, index: number) => (
+        {/* Saved Pages List - show search results or all pages */}
+        {(showingSearchResults ? searchResults : data.saved_pages).map((page: SavedPage, index: number) => (
           <div
             key={page.id}
             className="py-3 border-b border-gray-50 last:border-0"

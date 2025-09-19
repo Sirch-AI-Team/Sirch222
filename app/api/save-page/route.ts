@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { supabase } from '../../../lib/supabase'
 import { supabaseAdmin } from '../../../lib/supabaseAdmin'
+import TurboPufferService from '../../../lib/turbopuffer'
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,6 +53,28 @@ export async function POST(request: NextRequest) {
     if (saveError) {
       console.error('Error saving page:', saveError)
       return Response.json({ error: 'Failed to save page' }, { status: 500 })
+    }
+
+    // Index the page content in TurboPuffer for AI search
+    try {
+      const pageContent = await TurboPufferService.extractPageContent(url)
+      const searchableContent = `${title || ''} ${description || ''} ${pageContent}`.trim()
+
+      if (searchableContent) {
+        await TurboPufferService.indexSavedPage(
+          savedPage.id,
+          user.id,
+          url,
+          title || '',
+          searchableContent,
+          domain,
+          savedPage.saved_at
+        )
+        console.log('Page indexed in TurboPuffer for AI search')
+      }
+    } catch (error) {
+      console.error('Error indexing page in TurboPuffer:', error)
+      // Don't fail the save operation if indexing fails
     }
 
     return Response.json({

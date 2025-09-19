@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
+import TurboPufferService from '../../../../lib/turbopuffer'
 
 export async function DELETE(
   request: NextRequest,
@@ -43,6 +44,15 @@ export async function DELETE(
     if (deleteError) {
       console.error('Error deleting saved page:', deleteError)
       return Response.json({ error: 'Failed to delete page' }, { status: 500 })
+    }
+
+    // Remove from TurboPuffer index
+    try {
+      await TurboPufferService.removeSavedPage(id)
+      console.log('Page removed from TurboPuffer index')
+    } catch (error) {
+      console.error('Error removing page from TurboPuffer:', error)
+      // Don't fail the delete operation if index removal fails
     }
 
     return Response.json({ success: true })
