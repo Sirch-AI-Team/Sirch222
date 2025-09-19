@@ -20,6 +20,8 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const [savingPages, setSavingPages] = useState<Set<string>>(new Set())
   const { username } = params
 
+  const isViewingOwnProfile = isOwnProfile || (currentUserUsername !== null && currentUserUsername === username)
+
   // Auth effect
   useEffect(() => {
     const getSession = async () => {
@@ -124,7 +126,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   }
 
   const handleDeletePage = async (pageId: string, url: string) => {
-    if (!user || !isOwnProfile) return
+    if (!user || !isViewingOwnProfile) return
 
     setDeletingPages(prev => new Set(prev).add(pageId))
 
@@ -165,7 +167,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   }
 
   const handleSavePage = async (url: string, title?: string, description?: string) => {
-    if (!user || isOwnProfile) return
+    if (!user || isViewingOwnProfile) return
 
     setSavingPages(prev => new Set(prev).add(url))
 
@@ -260,7 +262,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       {/* Main content container matching main page */}
       <main className="max-w-2xl mx-auto pt-16 pb-8 px-6">
         {/* Profile Header */}
-        {isOwnProfile ? (
+        {isViewingOwnProfile ? (
           // Own Profile: AI Search Interface
           <div className="mb-8">
             <div className="mb-6">
@@ -311,7 +313,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (isOwnProfile) {
+                  if (isViewingOwnProfile) {
                     handleDeletePage(page.id, page.url)
                   } else {
                     handleSavePage(page.url, page.title || undefined, page.description || undefined)
@@ -325,7 +327,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                       ? "text-gray-400 hover:text-red-500"
                       : "text-gray-400 hover:text-red-500"
                 }`}
-                title={isOwnProfile ? "Delete page" : "Save page to my profile"}
+                title={isViewingOwnProfile ? "Delete page" : "Save page to my profile"}
               >
                 {deletingPages.has(page.id) || savingPages.has(page.url) ? (
                   <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
