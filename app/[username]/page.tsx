@@ -18,6 +18,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const [isOwnProfile, setIsOwnProfile] = useState(false)
   const [deletingPages, setDeletingPages] = useState<Set<string>>(new Set())
   const [savingPages, setSavingPages] = useState<Set<string>>(new Set())
+  const [savedPages, setSavedPages] = useState<Set<string>>(new Set())
 
   // AI Search state
   const [searchQuery, setSearchQuery] = useState('')
@@ -170,16 +171,24 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const handleSavePage = async (url: string, title?: string, description?: string) => {
     if (!user || isViewingOwnProfile) return
 
-    setSavingPages(prev => new Set(prev).add(url))
+    // Optimistically add to saved pages immediately
+    setSavedPages(prev => new Set(prev).add(url))
 
     try {
       // Get the current session token
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) {
         console.error('No auth token available')
+        // Remove from optimistic state on auth failure
+        setSavedPages(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(url)
+          return newSet
+        })
         return
       }
 
+      // Make API call in background
       const response = await fetch('/api/save-page', {
         method: 'POST',
         headers: {
@@ -193,15 +202,19 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         }),
       })
 
-      if (response.ok) {
-        console.log('Page saved successfully')
-      } else {
+      if (!response.ok) {
         console.error('Failed to save page')
+        // Remove from optimistic state on failure
+        setSavedPages(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(url)
+          return newSet
+        })
       }
     } catch (error) {
       console.error('Error saving page:', error)
-    } finally {
-      setSavingPages(prev => {
+      // Remove from optimistic state on error
+      setSavedPages(prev => {
         const newSet = new Set(prev)
         newSet.delete(url)
         return newSet
@@ -319,7 +332,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           // Own Profile: AI Search Interface
           <div className="mb-8">
             <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Search my stuff with AI</h2>
+              <h2 className="text-lg text-gray-800 mb-4">Search my stuff with AI</h2>
               <div className="relative">
                 <input
                   type="text"
@@ -327,27 +340,27 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAISearch()}
                   placeholder="Ask AI about your saved content..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
+                  className="w-full px-3 py-2 border border-gray-200 rounded focus:outline-none focus:border-gray-400 text-gray-800 text-sm"
                   disabled={searching}
                 />
                 <button
                   onClick={handleAISearch}
                   disabled={searching || !searchQuery.trim()}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 text-gray-600 hover:text-gray-800 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {searching ? 'Searching...' : 'Ask AI'}
                 </button>
               </div>
 
               {showingSearchResults && (
-                <div className="mt-4">
+                <div className="mt-3">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-500">
                       Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
                     </div>
                     <button
                       onClick={clearSearch}
-                      className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                      className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
                     >
                       Show all pages
                     </button>
@@ -355,7 +368,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                 </div>
               )}
             </div>
-            <div className="border-b border-gray-200 mb-6"></div>
+            <div className="border-b border-gray-100 mb-6"></div>
           </div>
         ) : (
           // Other Profile: Traditional View
@@ -396,17 +409,19 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                     handleSavePage(page.url, page.title || undefined, page.description || undefined)
                   }
                 }}
-                disabled={deletingPages.has(page.id) || savingPages.has(page.url)}
+                disabled={deletingPages.has(page.id)}
                 className={`flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors ${
-                  deletingPages.has(page.id) || savingPages.has(page.url)
+                  deletingPages.has(page.id)
                     ? "text-gray-400"
                     : isViewingOwnProfile
                       ? "text-gray-400 hover:text-red-500"
-                      : "text-gray-400 hover:text-red-500"
+                      : savedPages.has(page.url)
+                        ? "text-red-500"
+                        : "text-gray-400 hover:text-red-500"
                 }`}
                 title={isViewingOwnProfile ? "Delete page" : "Save page to my profile"}
               >
-                {deletingPages.has(page.id) || savingPages.has(page.url) ? (
+                {deletingPages.has(page.id) ? (
                   <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
                     <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
@@ -416,8 +431,13 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
+                ) : savedPages.has(page.url) ? (
+                  // Filled heart icon for saved pages
+                  <svg className="w-3 h-3" fill="currentColor" stroke="none" viewBox="0 0 24 24">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
                 ) : (
-                  // Empty heart icon for other profiles
+                  // Empty heart icon for unsaved pages
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
