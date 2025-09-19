@@ -259,6 +259,15 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         </a>
       </div>
 
+      {/* Mine indicator for own profile */}
+      {isViewingOwnProfile && (
+        <div className="fixed top-6 right-6 z-40">
+          <div className="px-3 py-2 text-sm text-gray-600 font-medium">
+            Mine
+          </div>
+        </div>
+      )}
+
       {/* Main content container matching main page */}
       <main className="max-w-2xl mx-auto pt-16 pb-8 px-6">
         {/* Profile Header */}
