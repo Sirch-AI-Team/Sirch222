@@ -77,7 +77,7 @@ export class TurboPufferService {
         top_k: limit,
         filters: {
           user_id: userId, // Only search this user's saved pages
-        },
+        } as any,
         include_attributes: true,
       })
 
