@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { UserSavedPagesResponse, SavedPage } from "../../lib/supabase"
 import { supabase } from "../../lib/supabase"
 import { User } from "@supabase/supabase-js"
@@ -222,8 +222,12 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     }
   }
 
-  const handleAISearch = async () => {
-    if (!searchQuery.trim() || !user) return
+  const handleAISearch = useCallback(async (query: string) => {
+    if (!query.trim() || !user) {
+      setSearchResults([])
+      setShowingSearchResults(false)
+      return
+    }
 
     setSearching(true)
     try {
@@ -240,7 +244,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          query: searchQuery.trim(),
+          query: query.trim(),
           limit: 20,
         }),
       })
@@ -257,7 +261,18 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     } finally {
       setSearching(false)
     }
-  }
+  }, [user])
+
+  // Debounced search effect
+  useEffect(() => {
+    if (!isViewingOwnProfile) return
+
+    const timeoutId = setTimeout(() => {
+      handleAISearch(searchQuery)
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, isViewingOwnProfile, handleAISearch])
 
   const clearSearch = () => {
     setSearchQuery('')
@@ -338,18 +353,17 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAISearch()}
                   placeholder="Ask AI about your saved content..."
                   className="w-full px-3 py-2 border border-gray-200 rounded focus:outline-none focus:border-gray-400 text-gray-800 text-sm"
-                  disabled={searching}
                 />
-                <button
-                  onClick={handleAISearch}
-                  disabled={searching || !searchQuery.trim()}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 text-gray-600 hover:text-gray-800 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {searching ? 'Searching...' : 'Ask AI'}
-                </button>
+                {searching && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
+                      <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                  </div>
+                )}
               </div>
 
               {showingSearchResults && (
