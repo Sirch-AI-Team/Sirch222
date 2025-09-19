@@ -298,7 +298,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                       ? "text-gray-400 hover:text-red-500"
                       : "text-gray-400 hover:text-red-500"
                 }`}
-                title={isOwnProfile ? "Delete page" : "Save page"}
+                title={isOwnProfile ? "Delete page" : "Save page to my profile"}
               >
                 {deletingPages.has(page.id) || savingPages.has(page.url) ? (
                   <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
