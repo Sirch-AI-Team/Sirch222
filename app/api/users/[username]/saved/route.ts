@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '../../../../../lib/supabaseAdmin'
-import { supabase } from '../../../../../lib/supabase'
 
 export async function GET(
   request: NextRequest,
@@ -19,15 +18,11 @@ export async function GET(
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '').trim()
       if (token) {
-        try {
-          const { data, error } = await supabase.auth.getUser(token)
-          if (error) {
-            console.error('Viewer token validation error:', error)
-          } else if (data.user) {
-            viewerUserId = data.user.id
-          }
-        } catch (tokenError) {
-          console.error('Failed to validate viewer token:', tokenError)
+        const { data: viewerData, error: viewerError } = await supabaseAdmin.auth.getUser(token)
+        if (viewerError) {
+          console.error('Viewer token validation error:', viewerError)
+        } else if (viewerData?.user) {
+          viewerUserId = viewerData.user.id
         }
       }
     }
