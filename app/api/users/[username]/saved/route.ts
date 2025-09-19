@@ -12,6 +12,13 @@ export async function GET(
       return Response.json({ error: 'Username is required' }, { status: 400 })
     }
 
+    // Debug environment variables
+    console.log('[DEBUG] Environment check:', {
+      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      urlPrefix: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 20)
+    })
+
     // First, check if the user profile exists and is public
     console.log('[DEBUG] Checking profile for username:', username)
     const { data: profile, error: profileError } = await supabaseAdmin
