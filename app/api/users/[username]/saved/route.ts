@@ -19,32 +19,45 @@ export async function GET(
       urlPrefix: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 20)
     })
 
-    // First, check if the user profile exists and is public - bypass RPC function
+    // First, check if the user exists in users table and get their profile
     console.log('[DEBUG] Checking profile for username:', username)
-    const { data: profile, error: profileError } = await supabaseAdmin
+    const { data: user, error: userError } = await supabaseAdmin
       .from('users')
-      .select('id, username, display_name, bio, avatar_url, is_public, created_at')
+      .select('id, username, created_at')
       .eq('username', username)
-      .eq('is_public', true)
       .single()
 
+    if (userError) {
+      console.error('User lookup error:', userError)
+      return Response.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Check if they have a public profile
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('display_name, bio, avatar_url, is_public')
+      .eq('id', user.id)
+      .single()
+
+    // If no profile exists or it's private, still show public info but limited
+    const isPublic = profile?.is_public !== false // Default to public if no profile exists
+
     console.log('[DEBUG] Profile result:', {
-      profileData: profile,
+      user: user,
+      profile: profile,
+      isPublic: isPublic,
       profileError: profileError?.message
     })
 
-    if (profileError) {
-      console.error('Profile lookup error:', profileError)
-      return Response.json({ error: 'User not found or profile is private' }, { status: 404 })
+    if (!isPublic) {
+      return Response.json({ error: 'Profile is private' }, { status: 404 })
     }
-
-    const userProfile = profile
 
     // Get the user's saved pages (newest 100) - direct query
     const { data: savedPages, error: savedPagesError } = await supabaseAdmin
       .from('saved_pages')
       .select('id, url, title, description, thumbnail_url, domain, saved_at, metadata')
-      .eq('user_id', userProfile.id)
+      .eq('user_id', user.id)
       .order('saved_at', { ascending: false })
       .limit(100)
 
@@ -56,11 +69,11 @@ export async function GET(
     return Response.json({
       success: true,
       profile: {
-        username: userProfile.username,
-        display_name: userProfile.display_name,
-        bio: userProfile.bio,
-        avatar_url: userProfile.avatar_url,
-        created_at: userProfile.created_at
+        username: user.username,
+        display_name: profile?.display_name || null,
+        bio: profile?.bio || null,
+        avatar_url: profile?.avatar_url || null,
+        created_at: user.created_at
       },
       saved_pages: savedPages || [],
       total_count: savedPages?.length || 0
