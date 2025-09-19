@@ -287,7 +287,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                   if (isOwnProfile) {
                     handleDeletePage(page.id, page.url)
                   } else {
-                    handleSavePage(page.url, page.title, page.description || undefined)
+                    handleSavePage(page.url, page.title || undefined, page.description || undefined)
                   }
                 }}
                 disabled={deletingPages.has(page.id) || savingPages.has(page.url)}
