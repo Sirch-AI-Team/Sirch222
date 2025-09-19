@@ -259,38 +259,39 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
       {/* Main content container matching main page */}
       <main className="max-w-2xl mx-auto pt-16 pb-8 px-6">
-        {/* Profile Header - conditional based on ownership */}
+        {/* Profile Header */}
         {isOwnProfile ? (
-          <>
-            {/* AI Search interface for own profile */}
+          // Own Profile: AI Search Interface
+          <div className="mb-8">
             <div className="mb-6">
-              <div className="text-lg font-medium text-gray-800 mb-3">Search my stuff with AI</div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Search my stuff with AI</h2>
               <div className="relative">
                 <input
                   type="text"
                   placeholder="Ask AI about your saved content..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
                 />
-                <button className="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors">
+                <button className="absolute right-3 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
                   Ask AI
                 </button>
               </div>
             </div>
-
-            {/* Divider line */}
-            <div className="mb-6 pb-4 border-b border-gray-100"></div>
-          </>
+            <div className="border-b border-gray-200 mb-6"></div>
+          </div>
         ) : (
-          <div className="mb-6 pb-4 border-b border-gray-100">
-            <h1 className="text-2xl font-semibold text-gray-800 mb-1">@{username}</h1>
-            {data.profile.display_name && (
-              <p className="text-gray-600 mb-1">{data.profile.display_name}</p>
-            )}
-            <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors mb-2 px-3 py-1 border border-blue-200 rounded-md">
-              Subscribe
-            </button>
-            <div className="text-sm text-gray-400">
-              {data.total_count} saved page{data.total_count !== 1 ? 's' : ''}
+          // Other Profile: Traditional View
+          <div className="mb-8">
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">@{username}</h1>
+              {data.profile.display_name && (
+                <p className="text-gray-600 mb-3 text-lg">{data.profile.display_name}</p>
+              )}
+              <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors mb-3 px-4 py-2 border border-blue-200 rounded-md font-medium">
+                Subscribe
+              </button>
+              <div className="text-sm text-gray-500">
+                {data.total_count} saved page{data.total_count !== 1 ? 's' : ''}
+              </div>
             </div>
           </div>
         )}
