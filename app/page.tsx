@@ -782,13 +782,7 @@ export default function HackerNewsClient() {
           {/* Auth Menu Dropdown */}
           {showAuthMenu && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-              {(() => {
-                console.log('[RENDER] Auth menu rendering. User state:', {
-                  hasUser: !!user,
-                  userEmail: user?.email,
-                  username: username
-                })
-                return user ? (
+              {user ? (
                 <>
                   {/* Profile Header */}
                   <a
@@ -843,8 +837,7 @@ export default function HackerNewsClient() {
                 >
                   Sign In / Sign Up
                 </a>
-              )
-              })()}
+              )}
             </div>
           )}
         </div>

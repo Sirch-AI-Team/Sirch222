@@ -129,8 +129,18 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     setDeletingPages(prev => new Set(prev).add(pageId))
 
     try {
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        console.error('No auth token available')
+        return
+      }
+
       const response = await fetch(`/api/saved-pages/${pageId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
       })
 
       if (response.ok) {
@@ -160,10 +170,18 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     setSavingPages(prev => new Set(prev).add(url))
 
     try {
-      const response = await fetch('/api/saved-pages', {
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        console.error('No auth token available')
+        return
+      }
+
+      const response = await fetch('/api/save-page', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           url,
