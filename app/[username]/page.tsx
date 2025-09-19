@@ -262,7 +262,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       {/* Mine indicator for own profile */}
       {isViewingOwnProfile && (
         <div className="fixed top-6 right-6 z-40">
-          <div className="px-3 py-2 text-sm text-gray-600 font-medium">
+          <div className="px-4 py-2 text-sm text-gray-800 font-semibold bg-gray-100 rounded-md">
             Mine
           </div>
         </div>
