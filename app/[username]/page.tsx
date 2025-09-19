@@ -18,7 +18,6 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const [isOwnProfile, setIsOwnProfile] = useState(false)
   const [deletingPages, setDeletingPages] = useState<Set<string>>(new Set())
   const [savingPages, setSavingPages] = useState<Set<string>>(new Set())
-  const [authLoading, setAuthLoading] = useState(true)
   const { username } = params
 
   const isViewingOwnProfile = isOwnProfile || (currentUserUsername !== null && currentUserUsername === username)
@@ -43,7 +42,6 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           setIsOwnProfile(profile.username === username)
         }
       }
-      setAuthLoading(false)
     }
     getSession()
 
@@ -67,7 +65,6 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         setCurrentUserUsername(null)
         setIsOwnProfile(false)
       }
-      setAuthLoading(false)
     })
 
     return () => subscription.unsubscribe()
@@ -211,7 +208,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     }
   }
 
-  if (loading || authLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-gray-400">Loading {username}'s saved pages...</div>
