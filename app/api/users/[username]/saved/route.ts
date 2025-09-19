@@ -19,31 +19,34 @@ export async function GET(
       urlPrefix: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 20)
     })
 
-    // First, check if the user profile exists and is public
+    // First, check if the user profile exists and is public - bypass RPC function
     console.log('[DEBUG] Checking profile for username:', username)
     const { data: profile, error: profileError } = await supabaseAdmin
-      .rpc('get_profile_by_username', { username_param: username })
+      .from('users')
+      .select('id, username, display_name, bio, avatar_url, is_public, created_at')
+      .eq('username', username)
+      .eq('is_public', true)
+      .single()
 
     console.log('[DEBUG] Profile result:', {
       profileData: profile,
-      profileError: profileError?.message,
-      profileCount: profile?.length
+      profileError: profileError?.message
     })
 
     if (profileError) {
       console.error('Profile lookup error:', profileError)
-      return Response.json({ error: 'Failed to fetch profile' }, { status: 500 })
-    }
-
-    if (!profile || profile.length === 0) {
       return Response.json({ error: 'User not found or profile is private' }, { status: 404 })
     }
 
-    const userProfile = profile[0]
+    const userProfile = profile
 
-    // Get the user's saved pages (newest 100)
+    // Get the user's saved pages (newest 100) - direct query
     const { data: savedPages, error: savedPagesError } = await supabaseAdmin
-      .rpc('get_saved_pages', { username_param: username })
+      .from('saved_pages')
+      .select('id, url, title, description, thumbnail_url, domain, saved_at, metadata')
+      .eq('user_id', userProfile.id)
+      .order('saved_at', { ascending: false })
+      .limit(100)
 
     if (savedPagesError) {
       console.error('Saved pages lookup error:', savedPagesError)
