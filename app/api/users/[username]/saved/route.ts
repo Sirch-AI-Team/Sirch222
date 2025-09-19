@@ -13,26 +13,16 @@ export async function GET(
     }
 
     // First, check if the user profile exists and is public
-    console.log('API: Looking up profile for username:', username)
     const { data: profile, error: profileError } = await supabaseAdmin
       .rpc('get_profile_by_username', { username_param: username })
 
-    console.log('API: Profile lookup result:', {
-      profile: profile,
-      profileLength: profile?.length,
-      error: profileError,
-      hasData: !!profile,
-      isArray: Array.isArray(profile)
-    })
-
     if (profileError) {
       console.error('Profile lookup error:', profileError)
-      return Response.json({ error: 'Failed to fetch profile', details: profileError.message }, { status: 500 })
+      return Response.json({ error: 'Failed to fetch profile' }, { status: 500 })
     }
 
     if (!profile || profile.length === 0) {
-      console.log('API: No profile found. Profile data:', profile)
-      return Response.json({ error: 'User not found or profile is private', username, profileData: profile }, { status: 404 })
+      return Response.json({ error: 'User not found or profile is private' }, { status: 404 })
     }
 
     const userProfile = profile[0]
