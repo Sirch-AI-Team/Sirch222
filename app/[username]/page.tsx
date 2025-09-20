@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { UserSavedPagesResponse, SavedPage } from "../../lib/supabase"
 import { supabase } from "../../lib/supabase"
 import { User } from "@supabase/supabase-js"
@@ -341,7 +341,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       )}
 
       {/* Main content container matching main page */}
-      <main className="max-w-2xl mx-auto pt-16 pb-8 px-6">
+      <main className="max-w-2xl mx-auto pt-16 pb-8 px-6 w-full">
         {/* Profile Header */}
         {isViewingOwnProfile ? (
           // Own Profile: AI Search Interface
@@ -387,40 +387,49 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           </div>
         )}
 
-        {/* Saved Pages List - show search results or all pages */}
-        <div>
-          {(showingSearchResults ? searchResults : data.saved_pages).map((page: SavedPage, index: number) => (
-            <div
-              key={page.id}
-              className="py-3 border-b border-gray-50 last:border-0"
-            >
-              <div className="flex gap-3">
-                <span className="text-sm w-6 flex-shrink-0 text-right text-gray-500 font-mono">
-                  {index + 1}
-                </span>
+        {/* Saved Pages List - stable rendering */}
+        <div className="w-full">
+          {(() => {
+            let visibleIndex = 0
+            return data.saved_pages.map((page: SavedPage, index: number) => {
+              // Hide pages that don't match search
+              if (showingSearchResults && !searchResults.some(result => result.id === page.id)) {
+                return null
+              }
 
-              {/* Action button - garbage can for own profile, heart for others */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (isViewingOwnProfile) {
-                    handleDeletePage(page.id, page.url)
-                  } else {
-                    handleSavePage(page.url, page.title || undefined, page.description || undefined)
-                  }
-                }}
-                disabled={deletingPages.has(page.id)}
-                className={`flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors ${
-                  deletingPages.has(page.id)
-                    ? "text-gray-400"
-                    : isViewingOwnProfile
-                      ? "text-gray-400 hover:text-red-500"
-                      : savedPages.has(page.url)
-                        ? "text-red-500"
-                        : "text-gray-400 hover:text-red-500"
-                }`}
-                title={isViewingOwnProfile ? "Delete page" : "Save page to my profile"}
-              >
+              visibleIndex++
+              return (
+                <div
+                  key={page.id}
+                  className="py-3 border-b border-gray-50 last:border-0 w-full"
+                >
+                  <div className="flex gap-3 w-full items-start">
+                    <span className="text-sm w-6 flex-shrink-0 text-right text-gray-500 font-mono leading-tight">
+                      {visibleIndex}
+                    </span>
+
+                    {/* Action button - garbage can for own profile, heart for others */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (isViewingOwnProfile) {
+                          handleDeletePage(page.id, page.url)
+                        } else {
+                          handleSavePage(page.url, page.title || undefined, page.description || undefined)
+                        }
+                      }}
+                      disabled={deletingPages.has(page.id)}
+                      className={`flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors ${
+                        deletingPages.has(page.id)
+                          ? "text-gray-400"
+                          : isViewingOwnProfile
+                            ? "text-gray-400 hover:text-red-500"
+                            : savedPages.has(page.url)
+                              ? "text-red-500"
+                              : "text-gray-400 hover:text-red-500"
+                      }`}
+                      title={isViewingOwnProfile ? "Delete page" : "Save page to my profile"}
+                    >
                 {deletingPages.has(page.id) ? (
                   <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
@@ -441,29 +450,31 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
-                )}
-              </button>
+                      )}
+                    </button>
 
-              <div className="flex-1 min-w-0">
-                <h2 className="leading-snug text-black">
-                  <button
-                    onClick={() => {
-                      console.log('Opening URL:', page.url)
-                      window.open(page.url, '_blank', 'noopener,noreferrer')
-                    }}
-                    className="text-left hover:text-gray-600 transition-colors"
-                  >
-                    {page.title || 'Untitled Page'}
-                  </button>
-                </h2>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="leading-snug text-black">
+                        <button
+                          onClick={() => {
+                            console.log('Opening URL:', page.url)
+                            window.open(page.url, '_blank', 'noopener,noreferrer')
+                          }}
+                          className="text-left hover:text-gray-600 transition-colors"
+                        >
+                          {page.title || 'Untitled Page'}
+                        </button>
+                      </h2>
 
-                <div className="text-xs mt-1 text-gray-400">
-                  {getWebsiteName(page.url)} • {formatTimeAgo(page.saved_at)}
-                </div>
-              </div>
+                      <div className="text-xs mt-1 text-gray-400">
+                        {getWebsiteName(page.url)} • {formatTimeAgo(page.saved_at)}
+                      </div>
+                    </div>
             </div>
           </div>
-          ))}
+        )
+      })
+    })()}
         </div>
 
         {data.total_count >= 100 && (
