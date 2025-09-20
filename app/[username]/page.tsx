@@ -368,10 +368,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
               {showingSearchResults && (
                 <div className="mt-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-sm text-gray-500">
-                      Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
-                    </div>
+                  <div className="flex justify-end mb-3">
                     <button
                       onClick={clearSearch}
                       className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
