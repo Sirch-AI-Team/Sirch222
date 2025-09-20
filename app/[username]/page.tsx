@@ -388,15 +388,16 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         )}
 
         {/* Saved Pages List - show search results or all pages */}
-        {(showingSearchResults ? searchResults : data.saved_pages).map((page: SavedPage, index: number) => (
-          <div
-            key={page.id}
-            className="py-3 border-b border-gray-50 last:border-0"
-          >
-            <div className="flex gap-3">
-              <span className="text-sm w-6 flex-shrink-0 text-right text-gray-500">
-                {index + 1}
-              </span>
+        <div>
+          {(showingSearchResults ? searchResults : data.saved_pages).map((page: SavedPage, index: number) => (
+            <div
+              key={page.id}
+              className="py-3 border-b border-gray-50 last:border-0"
+            >
+              <div className="flex gap-3">
+                <span className="text-sm w-6 flex-shrink-0 text-right text-gray-500 font-mono">
+                  {index + 1}
+                </span>
 
               {/* Action button - garbage can for own profile, heart for others */}
               <button
@@ -462,7 +463,8 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
               </div>
             </div>
           </div>
-        ))}
+          ))}
+        </div>
 
         {data.total_count >= 100 && (
           <div className="mt-8 text-center text-gray-500 text-sm">
