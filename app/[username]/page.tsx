@@ -366,18 +366,6 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                 )}
               </div>
 
-              {showingSearchResults && (
-                <div className="mt-3">
-                  <div className="flex justify-end mb-3">
-                    <button
-                      onClick={clearSearch}
-                      className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
-                    >
-                      Show all pages
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
             <div className="border-b border-gray-100 mb-6"></div>
           </div>
