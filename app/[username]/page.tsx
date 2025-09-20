@@ -269,7 +269,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
     const timeoutId = setTimeout(() => {
       handleAISearch(searchQuery)
-    }, 120) // 120ms debounce
+    }, 30) // 30ms debounce
 
     return () => clearTimeout(timeoutId)
   }, [searchQuery, isViewingOwnProfile, handleAISearch])
