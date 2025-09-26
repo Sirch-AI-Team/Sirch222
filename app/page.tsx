@@ -35,6 +35,15 @@ export default function HackerNewsClient() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [alignedSearchIndex, setAlignedSearchIndex] = useState<number | null>(null)
 
+  // Tab-to-Think state
+  const [tabToThinkState, setTabToThinkState] = useState<"none" | "loading" | "answered">("none")
+  const [tabToThinkAnswer, setTabToThinkAnswer] = useState("")
+  const [selectedQuery, setSelectedQuery] = useState("")
+
+  // Result summary state
+  const [highlightedResultSummary, setHighlightedResultSummary] = useState("")
+  const [loadingResultSummary, setLoadingResultSummary] = useState(false)
+
   const formatTimeAgo = (timestamp: string | number) => {
     const time = typeof timestamp === "string" ? Number.parseInt(timestamp) : timestamp
     const now = Date.now() / 1000
@@ -171,6 +180,100 @@ export default function HackerNewsClient() {
     return defaultDomains
   }
 
+  const triggerTabToThink = async (query: string) => {
+    try {
+      setTabToThinkState("loading")
+      setTabToThinkAnswer("")
+      setSelectedQuery(query)
+
+      const response = await fetch("/api/tab-to-think", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.answer) {
+          setTabToThinkAnswer(data.answer)
+          setTabToThinkState("answered")
+          // Trigger search for this query
+          performSearch(query)
+        }
+      } else {
+        setTabToThinkAnswer(`Deep analysis for "${query}" is not available at the moment.`)
+        setTabToThinkState("answered")
+      }
+    } catch (error) {
+      console.error("Failed to fetch Tab-to-Think answer:", error)
+      setTabToThinkAnswer(`Deep analysis for "${query}" is not available at the moment.`)
+      setTabToThinkState("answered")
+    }
+  }
+
+  const performSearch = async (query: string) => {
+    if (!query || query.trim() === "") return
+
+    setSearchLoading(true)
+    setSearchQuery(query)
+    setSearchResults([])
+
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        setSearchResults(data.results || [])
+      } else {
+        console.error("Search API error:", response.status)
+        setSearchResults([])
+      }
+    } catch (error) {
+      console.error("Search error:", error)
+      setSearchResults([])
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  const fetchResultSummary = async (highlightedResult: any) => {
+    if (!selectedQuery || !highlightedResult) return
+
+    setLoadingResultSummary(true)
+    setHighlightedResultSummary("")
+
+    try {
+      const response = await fetch("/api/result-summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          selectedQuery,
+          highlightedResult,
+          searchResults
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.summary) {
+          setHighlightedResultSummary(data.summary)
+        }
+      } else {
+        console.error("Result summary API error:", response.status)
+        setHighlightedResultSummary(`${highlightedResult?.title || 'This search result'} provides relevant information about "${selectedQuery}".`)
+      }
+    } catch (error) {
+      console.error("Failed to fetch result summary:", error)
+      setHighlightedResultSummary(`${highlightedResult?.title || 'This search result'} provides relevant information about "${selectedQuery}".`)
+    } finally {
+      setLoadingResultSummary(false)
+    }
+  }
+
   // Real-time logo search
   useEffect(() => {
     if (!commandSearchQuery || commandSearchQuery.length < 1) {
@@ -183,19 +286,19 @@ export default function HackerNewsClient() {
       console.log(`[Logo Search] Searching for: "${commandSearchQuery}"`)
       setLogoLoading(true)
       setLogoSearchQuery(commandSearchQuery)
-      
+
       try {
         const url = `/api/search-logos?q=${encodeURIComponent(commandSearchQuery)}`
         console.log(`[Logo Search] Fetching: ${url}`)
         const response = await fetch(url)
         console.log(`[Logo Search] Response status: ${response.status}`)
-        
+
         if (response.ok) {
           const results = await response.json()
           console.log(`[Logo Search] Results:`, results)
           console.log(`[Logo Search] Setting logoResults state to:`, results)
           setLogoResults(results)
-          
+
           // Auto-highlight first logo result if we have results and no space in query
           if (results.length > 0 && !commandSearchQuery.includes(' ')) {
             console.log(`[Logo Search] Auto-highlighting first result`)
@@ -203,7 +306,7 @@ export default function HackerNewsClient() {
           } else {
             setHighlightedDomainIndex(-1)
           }
-          
+
           console.log(`[Logo Search] logoResults state should now be:`, results)
         } else {
           console.error(`[Logo Search] API error: ${response.status} ${response.statusText}`)
@@ -277,32 +380,29 @@ export default function HackerNewsClient() {
     }
   }
 
-  const performSearch = async (query: string) => {
-    if (!query || query.trim() === "") return
-
-    setSearchLoading(true)
-    setSearchQuery(query)
-    setSearchResults([])
-
-    try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        setSearchResults(data.results || [])
-      } else {
-        console.error("Search API error:", response.status)
-        setSearchResults([])
-      }
-    } catch (error) {
-      console.error("Search error:", error)
-      setSearchResults([])
-    } finally {
-      setSearchLoading(false)
-    }
-  }
-
   const getPopBoxText = () => {
+    // In Tab-to-Think mode with highlighted search result, show result summary
+    if (tabToThinkState === "answered" && alignedSearchIndex !== null && searchResults[alignedSearchIndex]) {
+      if (loadingResultSummary) {
+        return "Generating result summary..."
+      }
+      if (highlightedResultSummary) {
+        return highlightedResultSummary
+      }
+      return `Analyzing how this result relates to "${selectedQuery}"...`
+    }
+
+    // In Tab-to-Think mode without highlighted result, show original answer
+    if (tabToThinkState === "answered" && tabToThinkAnswer) {
+      return tabToThinkAnswer
+    }
+
+    // Loading Tab-to-Think
+    if (tabToThinkState === "loading") {
+      return "Generating deep analysis..."
+    }
+
+    // Normal suggestion highlighting
     if (highlightedSuggestionIndex === -1) {
       return "Navigate through suggestions to see detailed information about each search query. Use arrow keys or hover to explore different options."
     }
@@ -397,6 +497,19 @@ export default function HackerNewsClient() {
       setPopBoxAnswer("")
     }
   }, [highlightedSuggestionIndex, suggestions, showCommandModal])
+
+  // Fetch result summary when search result is highlighted in Tab-to-Think mode
+  useEffect(() => {
+    if (tabToThinkState === "answered" && alignedSearchIndex !== null && searchResults[alignedSearchIndex]) {
+      const timeoutId = setTimeout(() => {
+        fetchResultSummary(searchResults[alignedSearchIndex])
+      }, 300) // Debounce for 300ms
+
+      return () => clearTimeout(timeoutId)
+    } else {
+      setHighlightedResultSummary("")
+    }
+  }, [alignedSearchIndex, searchResults, tabToThinkState, selectedQuery])
 
   if (loading) {
     return (
@@ -531,19 +644,33 @@ export default function HackerNewsClient() {
                       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                         e.preventDefault()
                         setKeyboardMode(true)
-                        
-                        if (e.key === 'ArrowDown') {
-                          setHighlightedSuggestionIndex(prev => {
-                            if (prev === -1) return 0 // First press starts at first item
-                            const nextIndex = prev < suggestions.length - 1 ? prev + 1 : 0
-                            return nextIndex
-                          })
-                        } else if (e.key === 'ArrowUp') {
-                          setHighlightedSuggestionIndex(prev => {
-                            if (prev === -1) return suggestions.length - 1 // First press starts at last item
-                            const nextIndex = prev > 0 ? prev - 1 : suggestions.length - 1
-                            return nextIndex
-                          })
+
+                        // In Tab-to-Think mode, navigate through search results
+                        if (tabToThinkState === "answered" && searchResults.length > 0) {
+                          if (e.key === 'ArrowDown') {
+                            setAlignedSearchIndex(prev =>
+                              prev === null ? 0 : Math.min(prev + 1, searchResults.length - 1)
+                            )
+                          } else if (e.key === 'ArrowUp') {
+                            setAlignedSearchIndex(prev =>
+                              prev === null ? searchResults.length - 1 : Math.max(prev - 1, 0)
+                            )
+                          }
+                        } else {
+                          // Normal suggestion navigation
+                          if (e.key === 'ArrowDown') {
+                            setHighlightedSuggestionIndex(prev => {
+                              if (prev === -1) return 0 // First press starts at first item
+                              const nextIndex = prev < suggestions.length - 1 ? prev + 1 : 0
+                              return nextIndex
+                            })
+                          } else if (e.key === 'ArrowUp') {
+                            setHighlightedSuggestionIndex(prev => {
+                              if (prev === -1) return suggestions.length - 1 // First press starts at last item
+                              const nextIndex = prev > 0 ? prev - 1 : suggestions.length - 1
+                              return nextIndex
+                            })
+                          }
                         }
                       }
                       if (e.key === 'ArrowRight') {
@@ -563,6 +690,12 @@ export default function HackerNewsClient() {
                           const nextIndex = prev > 0 ? prev - 1 : domains.length - 1
                           return nextIndex
                         })
+                      }
+                      // Tab key - trigger Tab-to-Think
+                      if (e.key === 'Tab' && highlightedSuggestionIndex >= 0) {
+                        e.preventDefault()
+                        const query = suggestions[highlightedSuggestionIndex]
+                        triggerTabToThink(query)
                       }
                     }}
                   />
