@@ -181,11 +181,13 @@ export default function HackerNewsClient() {
   }
 
   const triggerTabToThink = async (query: string) => {
+    console.log("[TabToThink] Triggering deep dive for query:", query)
     try {
       setTabToThinkState("loading")
       setTabToThinkAnswer("")
       setSelectedQuery(query)
 
+      console.log("[TabToThink] Fetching from /api/tab-to-think")
       const response = await fetch("/api/tab-to-think", {
         method: "POST",
         headers: {
@@ -197,12 +199,15 @@ export default function HackerNewsClient() {
       if (response.ok) {
         const data = await response.json()
         if (data.answer) {
+          console.log("[TabToThink] Received answer, setting state to answered")
           setTabToThinkAnswer(data.answer)
           setTabToThinkState("answered")
           // Trigger search for this query
+          console.log("[TabToThink] Triggering search for:", query)
           performSearch(query)
         }
       } else {
+        console.error("[TabToThink] API error:", response.status)
         setTabToThinkAnswer(`Deep analysis for "${query}" is not available at the moment.`)
         setTabToThinkState("answered")
       }
@@ -239,8 +244,12 @@ export default function HackerNewsClient() {
   }
 
   const fetchResultSummary = async (highlightedResult: any) => {
-    if (!selectedQuery || !highlightedResult) return
+    if (!selectedQuery || !highlightedResult) {
+      console.log("[ResultSummary] Missing selectedQuery or highlightedResult:", { selectedQuery, highlightedResult })
+      return
+    }
 
+    console.log("[ResultSummary] Fetching summary for result:", highlightedResult.title, "Query:", selectedQuery)
     setLoadingResultSummary(true)
     setHighlightedResultSummary("")
 
@@ -260,6 +269,7 @@ export default function HackerNewsClient() {
       if (response.ok) {
         const data = await response.json()
         if (data.summary) {
+          console.log("[ResultSummary] Received summary:", data.summary.slice(0, 100) + "...")
           setHighlightedResultSummary(data.summary)
         }
       } else {
@@ -447,7 +457,7 @@ export default function HackerNewsClient() {
       if (showCommandModal) {
         // Switch to cursor mode when mouse moves
         setKeyboardMode(false)
-        
+
         // Track cursor in modal, but limit to suggestions area
         const modalElement = document.querySelector('.w-\\[640px\\].h-\\[480px\\]') as HTMLElement
         if (modalElement) {
@@ -468,6 +478,36 @@ export default function HackerNewsClient() {
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [showCommandModal])
+
+  // Global keyboard handler for Tab-to-Think mode
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Only handle if in Tab-to-Think mode and modal is open
+      if (tabToThinkState === "answered" && showCommandModal && searchResults.length > 0) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          console.log("[GlobalKeyboard] Arrow key pressed in Tab-to-Think mode:", e.key)
+          e.preventDefault()
+
+          if (e.key === 'ArrowDown') {
+            setAlignedSearchIndex(prev => {
+              const newIndex = prev === null ? 0 : Math.min(prev + 1, searchResults.length - 1)
+              console.log("[GlobalKeyboard] ArrowDown: prev =", prev, "new =", newIndex)
+              return newIndex
+            })
+          } else if (e.key === 'ArrowUp') {
+            setAlignedSearchIndex(prev => {
+              const newIndex = prev === null ? searchResults.length - 1 : Math.max(prev - 1, 0)
+              console.log("[GlobalKeyboard] ArrowUp: prev =", prev, "new =", newIndex)
+              return newIndex
+            })
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [tabToThinkState, showCommandModal, searchResults.length])
 
 
   // Fetch AI suggestions when modal opens or search query changes
@@ -500,13 +540,23 @@ export default function HackerNewsClient() {
 
   // Fetch result summary when search result is highlighted in Tab-to-Think mode
   useEffect(() => {
+    console.log("[useEffect] Result summary trigger:", {
+      tabToThinkState,
+      alignedSearchIndex,
+      searchResultsLength: searchResults.length,
+      selectedQuery,
+      hasResult: !!searchResults[alignedSearchIndex || 0]
+    })
+
     if (tabToThinkState === "answered" && alignedSearchIndex !== null && searchResults[alignedSearchIndex]) {
+      console.log("[useEffect] Triggering result summary fetch for index:", alignedSearchIndex)
       const timeoutId = setTimeout(() => {
         fetchResultSummary(searchResults[alignedSearchIndex])
       }, 300) // Debounce for 300ms
 
       return () => clearTimeout(timeoutId)
     } else {
+      console.log("[useEffect] Clearing result summary")
       setHighlightedResultSummary("")
     }
   }, [alignedSearchIndex, searchResults, tabToThinkState, selectedQuery])
